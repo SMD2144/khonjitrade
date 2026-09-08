@@ -675,3 +675,35 @@ body.dark .stepField input{
   .pickerCoinRow{padding:12px}
   .pickerStepper{grid-template-columns:48px 48px 48px;gap:6px}
 }
+
+
+/* ===== v1.4.0 Smart Cross-Cover Engine ===== */
+.smartProposal{
+  margin:0 0 14px;
+  padding:12px 14px;
+  border-radius:16px;
+  background:color-mix(in srgb,var(--gold) 10%,var(--surface2));
+  border:1px solid color-mix(in srgb,var(--gold) 26%,var(--line));
+  color:var(--muted);
+  line-height:1.8;
+}
+.smartProposal b{color:var(--gold)}
+
+.pickerQtyInput{
+  width:64px;
+  height:48px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  color:var(--text);
+  border-radius:14px;
+  text-align:center;
+  font-size:18px;
+  font-weight:800;
+  outline:none;
+}
+.pickerQtyInput:focus{
+  border-color:var(--gold);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 18%,transparent);
+}
+.pickerWarning.ok{color:var(--green)}
+.coverageHint{line-height:1.7;font-size:12px}

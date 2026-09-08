@@ -49,6 +49,23 @@ function coinEq18(name,qty){
   if(name==='ربع سکه')return qty*2.439;
   return 0;
 }
+
+const COVER_ASSETS=[
+  {name:'آبشده', label:'طلای وزنی', unit:'گرم', eq:1, step:0.001, integer:false},
+  {name:'تمام سکه', label:'تمام', unit:'عدد', eq:9.756, step:1, integer:true},
+  {name:'نیم سکه', label:'نیم', unit:'عدد', eq:4.878, step:1, integer:true},
+  {name:'ربع سکه', label:'ربع', unit:'عدد', eq:2.439, step:1, integer:true}
+];
+
+function assetDef(name){ return COVER_ASSETS.find(x=>x.name===name); }
+function coverBalance(name){ return name==='آبشده' ? rawGold() : coinBal(name); }
+function assetEq18(name,qty){ const d=assetDef(name); return d ? d.eq*qty : 0; }
+function coverFmtQty(name,qty){ const d=assetDef(name); return fmt(qty,d?.integer?0:3); }
+function coverLabel(name,qty){
+  const d=assetDef(name);
+  return `${coverFmtQty(name,qty)} ${d?.label||name}`;
+}
+
 function coinQtyFor18(name,grams){
   const u = name==='تمام سکه'?9.756:name==='نیم سکه'?4.878:name==='ربع سکه'?2.439:0;
   return u>0 ? grams/u : 0;
@@ -83,83 +100,130 @@ function settlementConfirm(message){
   return confirm(message + '\n\nاین ثبت به عنوان «تسویه داخلی» ذخیره می‌شود.');
 }
 
-function addMultiSettlement({coins, goldGrams, direction}){
+function addSmartSettlement({targetName,targetQty,sources}){
   const groupId='SET-'+Date.now();
   const ts=Date.now();
 
-  if(direction==='GOLD_TO_COIN'){
+  sources.forEach((s,i)=>{
     state.trades.unshift({
-      id:ts+1, groupId, kind:'SETTLEMENT', leg:'GOLD',
-      side:'SELL', asset:'آبشده', qty:goldGrams,
+      id:ts+10+i, groupId, kind:'SETTLEMENT', leg:'SOURCE',
+      side:'SELL', asset:s.name, qty:s.qty,
       total:0, rate:0, party:'تسویه داخلی',
-      note:`پوشش ترکیبی سکه با ${fmt(goldGrams)} گرم طلا`,
+      note:`پوشش ${coverLabel(targetName,targetQty)}`,
       coinType:'BANK', autoQty:false, ts
     });
+  });
 
-    coins.forEach((c,i)=>{
-      state.trades.unshift({
-        id:ts+10+i, groupId, kind:'SETTLEMENT', leg:'COIN',
-        side:'BUY', asset:c.name, qty:c.qty,
-        total:0, rate:0, party:'تسویه داخلی',
-        note:`معادل ${fmt(coinEq18(c.name,c.qty))} گرم طلا`,
-        coinType:'BANK', autoQty:false, ts
-      });
-    });
-  }else{
-    coins.forEach((c,i)=>{
-      state.trades.unshift({
-        id:ts+10+i, groupId, kind:'SETTLEMENT', leg:'COIN',
-        side:'SELL', asset:c.name, qty:c.qty,
-        total:0, rate:0, party:'تسویه داخلی',
-        note:`پوشش طلای وزنی با ${fmt(c.qty)} ${c.name}`,
-        coinType:'BANK', autoQty:false, ts
-      });
-    });
+  state.trades.unshift({
+    id:ts+1, groupId, kind:'SETTLEMENT', leg:'TARGET',
+    side:'BUY', asset:targetName, qty:targetQty,
+    total:0, rate:0, party:'تسویه داخلی',
+    note:`پوشش با ${sources.map(s=>coverLabel(s.name,s.qty)).join(' + ')}`,
+    coinType:'BANK', autoQty:false, ts
+  });
 
-    state.trades.unshift({
-      id:ts+1, groupId, kind:'SETTLEMENT', leg:'GOLD',
-      side:'BUY', asset:'آبشده', qty:goldGrams,
-      total:0, rate:0, party:'تسویه داخلی',
-      note:`معادل ترکیبی سکه‌ها`,
-      coinType:'BANK', autoQty:false, ts
-    });
-  }
   save();
-}
-
-function settlementCoinLabel(coins){
-  return coins.map(c=>`${fmt(c.qty,0)} ${c.name.replace(' سکه','')}`).join(' + ');
 }
 
 function closeSettlementPicker(){
   document.getElementById('settlementPickerOverlay')?.remove();
 }
 
-function openSettlementPicker(direction, presetName=''){
-  const rg=rawGold();
-  const coinDefs=[
-    {name:'تمام سکه', bal:coinBal('تمام سکه')},
-    {name:'نیم سکه', bal:coinBal('نیم سکه')},
-    {name:'ربع سکه', bal:coinBal('ربع سکه')}
-  ];
+function availablePositiveSources(excludeName){
+  return COVER_ASSETS
+    .filter(a=>a.name!==excludeName)
+    .map(a=>({...a,bal:coverBalance(a.name)}))
+    .filter(a=>a.bal>0.000001);
+}
 
-  const eligible = coinDefs
-    .filter(c=>direction==='COIN_TO_GOLD' ? c.bal>0.000001 : c.bal<-0.000001)
-    .map(c=>({
-      ...c,
-      max:Math.max(0, Math.floor((direction==='COIN_TO_GOLD'?c.bal:Math.abs(c.bal))+1e-9)),
-      qty:0
-    }))
-    .filter(c=>c.max>0);
+function smartExactCover(targetName,targetQty){
+  const needEq=assetEq18(targetName,targetQty);
+  const sources=availablePositiveSources(targetName);
+  if(needEq<=0 || !sources.length) return null;
 
-  if(!eligible.length){
-    alert('سکه قابل استفاده برای پوشش وجود ندارد.');
+  const gold=sources.find(s=>s.name==='آبشده');
+  const coins=sources.filter(s=>s.integer);
+
+  const maxFull=Math.floor((coins.find(c=>c.name==='تمام سکه')?.bal||0)+1e-9);
+  const maxHalf=Math.floor((coins.find(c=>c.name==='نیم سکه')?.bal||0)+1e-9);
+  const maxQuarter=Math.floor((coins.find(c=>c.name==='ربع سکه')?.bal||0)+1e-9);
+
+  let best=null;
+  const targetUnits=Math.round(needEq/2.439);
+
+  if(Math.abs(targetUnits*2.439-needEq)<0.0005){
+    for(let f=0; f<=Math.min(maxFull,Math.floor(targetUnits/4)); f++){
+      for(let h=0; h<=Math.min(maxHalf,Math.floor((targetUnits-4*f)/2)); h++){
+        const remain=targetUnits-4*f-2*h;
+        if(remain<0) continue;
+        const q=remain;
+        if(q<=maxQuarter){
+          const count=f+h+q;
+          const candidate=[];
+          if(f)candidate.push({name:'تمام سکه',qty:f});
+          if(h)candidate.push({name:'نیم سکه',qty:h});
+          if(q)candidate.push({name:'ربع سکه',qty:q});
+          if(!best || count<best.count){
+            best={sources:candidate,count};
+          }
+        }
+      }
+    }
+  }
+  if(best) return best.sources;
+
+  if(gold && gold.bal+0.000001>=needEq){
+    return [{name:'آبشده',qty:needEq}];
+  }
+
+  if(gold){
+    let mixedBest=null;
+    for(let f=0; f<=maxFull; f++){
+      for(let h=0; h<=maxHalf; h++){
+        for(let q=0; q<=maxQuarter; q++){
+          const eq=f*9.756+h*4.878+q*2.439;
+          if(eq>needEq+0.0005) continue;
+          const rem=needEq-eq;
+          if(rem< -0.0005 || rem>gold.bal+0.0005) continue;
+          const score=rem;
+          if(!mixedBest || score<mixedBest.score){
+            const arr=[];
+            if(f)arr.push({name:'تمام سکه',qty:f});
+            if(h)arr.push({name:'نیم سکه',qty:h});
+            if(q)arr.push({name:'ربع سکه',qty:q});
+            if(rem>0.0005)arr.push({name:'آبشده',qty:rem});
+            mixedBest={sources:arr,score};
+          }
+        }
+      }
+    }
+    if(mixedBest) return mixedBest.sources;
+  }
+
+  return null;
+}
+
+function openSmartCoverPicker(targetName){
+  const targetBal=coverBalance(targetName);
+  if(targetBal>=-0.000001){
+    alert('این مورد در حال حاضر کسری ندارد.');
     return;
   }
 
-  // Preselect one unit of the tapped coin (or first available) for speed.
-  const preset = eligible.find(c=>c.name===presetName) || eligible[0];
-  if(preset) preset.qty=Math.min(1,preset.max);
+  const targetQty=Math.abs(targetBal);
+  const targetEq=assetEq18(targetName,targetQty);
+  const proposal=smartExactCover(targetName,targetQty);
+
+  if(!proposal){
+    alert('برای این کسری، پوشش کامل با موجودی فعلی ممکن نیست.');
+    return;
+  }
+
+  const sourceDefs=availablePositiveSources(targetName).map(s=>({...s,qty:0}));
+  proposal.forEach(p=>{
+    const x=sourceDefs.find(s=>s.name===p.name);
+    if(x)x.qty=p.qty;
+  });
 
   const overlay=document.createElement('div');
   overlay.id='settlementPickerOverlay';
@@ -168,19 +232,23 @@ function openSettlementPicker(direction, presetName=''){
     <div class="settlementModal" role="dialog" aria-modal="true">
       <div class="settlementModalHead">
         <div>
-          <h3>${direction==='COIN_TO_GOLD'?'پوشش طلا از سکه‌ها':'پوشش سکه از طلا'}</h3>
-          <small>${direction==='COIN_TO_GOLD'
-            ? `طلای وزنی فعلی: ${signed(rg)} گرم`
-            : `طلای وزنی در دسترس: ${signed(rg)} گرم`}</small>
+          <h3>پوشش ${assetDef(targetName)?.label||targetName}</h3>
+          <small>کسری: ${coverLabel(targetName,targetQty)} • معادل ${fmt(targetEq)} گرم ۱۸</small>
         </div>
         <button class="modalClose" aria-label="بستن">×</button>
+      </div>
+
+      <div class="smartProposal">
+        پیشنهاد هوشمند:
+        <b>${proposal.map(p=>coverLabel(p.name,p.qty)).join(' + ')}</b>
       </div>
 
       <div class="settlementPickerRows"></div>
 
       <div class="settlementCalc">
-        <div><span>معادل انتخاب</span><strong id="pickerGoldEq">۰ گرم</strong></div>
-        <div><span>بالانس طلای بعد از پوشش</span><strong id="pickerAfterGold">—</strong></div>
+        <div><span>معادل انتخاب‌شده</span><strong id="pickerGoldEq">۰ گرم</strong></div>
+        <div><span>کسری هدف</span><strong>${fmt(targetEq)} گرم</strong></div>
+        <div><span>اختلاف</span><strong id="pickerDiff">—</strong></div>
         <p id="pickerWarning"></p>
       </div>
 
@@ -191,65 +259,79 @@ function openSettlementPicker(direction, presetName=''){
     </div>`;
 
   document.body.appendChild(overlay);
-
   const rows=overlay.querySelector('.settlementPickerRows');
 
   function renderRows(){
-    rows.innerHTML=eligible.map((c,i)=>`
+    rows.innerHTML=sourceDefs.map((s,i)=>{
+      const isGold=s.name==='آبشده';
+      return `
       <div class="pickerCoinRow" data-i="${i}">
         <div class="pickerCoinName">
-          <b>${c.name}</b>
-          <small>قابل استفاده: ${fmt(c.max,0)} عدد</small>
+          <b>${s.label}</b>
+          <small>در دسترس: ${coverFmtQty(s.name,s.bal)} ${s.unit}</small>
         </div>
         <div class="pickerStepper">
           <button data-op="minus">−</button>
-          <strong>${fmt(c.qty,0)}</strong>
+          <input class="pickerQtyInput" data-q="${i}" inputmode="decimal"
+                 value="${s.qty ? Number(s.qty.toFixed(isGold?3:0)) : 0}">
           <button data-op="plus">+</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     rows.querySelectorAll('.pickerCoinRow').forEach(row=>{
       const i=Number(row.dataset.i);
+      const s=sourceDefs[i];
+      const input=row.querySelector('.pickerQtyInput');
+
       row.querySelector('[data-op="minus"]').onclick=()=>{
-        eligible[i].qty=Math.max(0,eligible[i].qty-1);
-        renderRows(); updateCalc();
+        const step=s.name==='آبشده'?0.001:1;
+        s.qty=Math.max(0,s.qty-step);
+        if(s.name!=='آبشده')s.qty=Math.round(s.qty);
+        renderRows();updateCalc();
       };
       row.querySelector('[data-op="plus"]').onclick=()=>{
-        eligible[i].qty=Math.min(eligible[i].max,eligible[i].qty+1);
-        renderRows(); updateCalc();
+        const step=s.name==='آبشده'?0.001:1;
+        s.qty=Math.min(s.bal,s.qty+step);
+        if(s.name!=='آبشده')s.qty=Math.round(s.qty);
+        renderRows();updateCalc();
       };
+      input.oninput=()=>{
+        let v=Number(input.value.replace(',','.'))||0;
+        if(s.name!=='آبشده')v=Math.round(v);
+        s.qty=Math.max(0,Math.min(s.bal,v));
+        updateCalc();
+      };
+      input.onblur=()=>renderRows();
     });
   }
 
-  function selectedCoins(){
-    return eligible.filter(c=>c.qty>0).map(c=>({name:c.name,qty:c.qty}));
+  function selectedSources(){
+    return sourceDefs.filter(s=>s.qty>0.000001).map(s=>({name:s.name,qty:s.qty}));
   }
 
   function updateCalc(){
-    const selected=selectedCoins();
-    const goldEq=selected.reduce((a,c)=>a+coinEq18(c.name,c.qty),0);
-    const after = direction==='COIN_TO_GOLD' ? rg+goldEq : rg-goldEq;
-    overlay.querySelector('#pickerGoldEq').textContent=`${fmt(goldEq)} گرم`;
-    overlay.querySelector('#pickerAfterGold').textContent=`${signed(after)} گرم`;
+    const selected=selectedSources();
+    const eq=selected.reduce((a,s)=>a+assetEq18(s.name,s.qty),0);
+    const diff=eq-targetEq;
+
+    overlay.querySelector('#pickerGoldEq').textContent=`${fmt(eq)} گرم`;
+    overlay.querySelector('#pickerDiff').textContent=
+      Math.abs(diff)<0.0005 ? 'دقیق' :
+      diff>0 ? `${fmt(diff)} گرم اضافه` : `${fmt(Math.abs(diff))} گرم کم`;
 
     const warning=overlay.querySelector('#pickerWarning');
     const confirmBtn=overlay.querySelector('.confirmSettle');
 
-    let invalid = selected.length===0;
-
-    if(direction==='GOLD_TO_COIN' && goldEq>rg+0.000001){
-      warning.textContent=`طلای کافی نیست؛ ${fmt(goldEq-rg)} گرم کمبود داری.`;
-      warning.className='pickerWarning bad';
-      invalid=true;
-    }else if(direction==='COIN_TO_GOLD' && after>0.000001){
-      warning.textContent=`با این انتخاب ${fmt(after)} گرم طلا مثبت می‌شوی.`;
-      warning.className='pickerWarning';
+    if(Math.abs(diff)<0.0005 && selected.length){
+      warning.textContent='پوشش کامل است.';
+      warning.className='pickerWarning ok';
+      confirmBtn.disabled=false;
     }else{
-      warning.textContent='';
+      warning.textContent='برای ثبت، انتخاب باید دقیقاً کسری را پوشش دهد.';
       warning.className='pickerWarning';
+      confirmBtn.disabled=true;
     }
-
-    confirmBtn.disabled=invalid;
   }
 
   renderRows();
@@ -257,20 +339,16 @@ function openSettlementPicker(direction, presetName=''){
 
   overlay.querySelector('.modalClose').onclick=closeSettlementPicker;
   overlay.querySelector('.cancelSettle').onclick=closeSettlementPicker;
-  overlay.onclick=e=>{ if(e.target===overlay) closeSettlementPicker(); };
+  overlay.onclick=e=>{if(e.target===overlay)closeSettlementPicker()};
 
   overlay.querySelector('.confirmSettle').onclick=()=>{
-    const coins=selectedCoins();
-    if(!coins.length)return;
-    const goldEq=coins.reduce((a,c)=>a+coinEq18(c.name,c.qty),0);
-    const list=settlementCoinLabel(coins);
+    const sources=selectedSources();
+    const eq=sources.reduce((a,s)=>a+assetEq18(s.name,s.qty),0);
+    if(Math.abs(eq-targetEq)>=0.0005)return;
 
-    const msg=direction==='COIN_TO_GOLD'
-      ? `${list} با معادل ${fmt(goldEq)} گرم طلا تسویه شود؟`
-      : `${list} با ${fmt(goldEq)} گرم از طلای وزنی پوشش داده شود؟`;
-
+    const msg=`${coverLabel(targetName,targetQty)} با ${sources.map(s=>coverLabel(s.name,s.qty)).join(' + ')} پوشش داده شود؟`;
     if(settlementConfirm(msg)){
-      addMultiSettlement({coins,goldGrams:goldEq,direction});
+      addSmartSettlement({targetName,targetQty,sources});
       closeSettlementPicker();
       renderDashboard();
     }
@@ -327,42 +405,30 @@ function renderDashboard(){
   }
   clearSettlementActions();
 
-  const coinStates=[
-    {name:'تمام سکه', bal:fc, actionId:'actFullCoin'},
-    {name:'نیم سکه', bal:hc, actionId:'actHalfCoin'},
-    {name:'ربع سکه', bal:qc, actionId:'actQuarterCoin'}
+  const coverRows=[
+    {name:'آبشده', actionId:'actRawGold'},
+    {name:'تمام سکه', actionId:'actFullCoin'},
+    {name:'نیم سکه', actionId:'actHalfCoin'},
+    {name:'ربع سکه', actionId:'actQuarterCoin'}
   ];
 
-  // Positive gold + negative coin balances:
-  // every negative coin gets its own quick entry, but tapping opens
-  // the combined picker so the user can select full/half/quarter together.
-  if(rg>0){
-    const deficits=coinStates.filter(c=>c.bal<0);
-    deficits.forEach(c=>{
-      const wrap=document.getElementById(c.actionId);
-      if(!wrap)return;
-      const need=Math.abs(c.bal);
-      wrap.innerHTML=`<button class="settleBtn">پوشش بده • ${fmt(need,0)} ${c.name.replace(' سکه','')}</button>`;
-      wrap.querySelector('button').onclick=()=>openSettlementPicker('GOLD_TO_COIN',c.name);
-    });
-  }
+  coverRows.forEach(row=>{
+    const bal=coverBalance(row.name);
+    if(bal>=-0.000001)return;
 
-  // Negative gold + positive coin balances:
-  // show ALL available coin types in one concise button, then allow
-  // selecting the quantity of each type in the picker.
-  if(rg<0){
-    const positives=coinStates.filter(c=>c.bal>0.000001);
-    if(positives.length){
-      const summary=positives
-        .map(c=>`${fmt(Math.floor(c.bal+1e-9),0)} ${c.name.replace(' سکه','')}`)
-        .join(' • ');
-      const wrap=document.getElementById('actRawGold');
-      wrap.innerHTML=`
-        <div class="coverageHint">قابل استفاده: ${summary}</div>
-        <button class="settleBtn">از سکه‌ها پوشش بده</button>`;
-      wrap.querySelector('button').onclick=()=>openSettlementPicker('COIN_TO_GOLD');
-    }
-  }
+    const targetQty=Math.abs(bal);
+    const proposal=smartExactCover(row.name,targetQty);
+    if(!proposal || !proposal.length)return;
+
+    const wrap=document.getElementById(row.actionId);
+    if(!wrap)return;
+
+    const text=proposal.map(p=>coverLabel(p.name,p.qty)).join(' + ');
+    wrap.innerHTML=`
+      <div class="coverageHint">پیشنهاد: ${text}</div>
+      <button class="settleBtn">پوشش بده</button>`;
+    wrap.querySelector('button').onclick=()=>openSmartCoverPicker(row.name);
+  });
 
   const recent=[...today].sort((a,b)=>b.ts-a.ts).slice(0,4);
   document.getElementById('recentMini').innerHTML = recent.length ? recent.map(t=>`
@@ -521,15 +587,14 @@ function renderReport(){
 
   const groups=settlementSummaryGroups();
   document.getElementById('settlementHistory').innerHTML = groups.length ? groups.map(g=>{
-    const coinLegs=g.legs.filter(x=>x.leg==='COIN');
-    const goldLeg=g.legs.find(x=>x.leg==='GOLD');
-    if(!coinLegs.length||!goldLeg) return '';
-    const dir = coinLegs[0].side==='BUY' ? 'طلا → سکه' : 'سکه → طلا';
-    const coinsText=coinLegs.map(x=>`${fmt(x.qty,0)} ${x.asset.replace(' سکه','')}`).join(' + ');
+    const target=g.legs.find(x=>x.leg==='TARGET');
+    const sources=g.legs.filter(x=>x.leg==='SOURCE');
+    if(!target||!sources.length)return '';
+    const srcText=sources.map(x=>coverLabel(x.asset,x.qty)).join(' + ');
     return `<article class="reportCard settlementCard">
-      <h3>${dir}</h3>
-      <strong>${coinsText}</strong>
-      <div class="action">معادل ${fmt(goldLeg.qty)} گرم طلا</div>
+      <h3>پوشش داخلی</h3>
+      <strong>${coverLabel(target.asset,target.qty)}</strong>
+      <div class="action">با ${srcText}</div>
       <small>${new Date(g.ts).toLocaleString('fa-IR')}</small>
     </article>`;
   }).join('') : '<div class="panel mutedBox">هنوز تسویه داخلی ثبت نشده</div>';

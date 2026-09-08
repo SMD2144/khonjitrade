@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.3.0-multicoin';
+const CACHE='khonji-pwa-v1.4.0-smart-cover';
 const CORE=[
   './',
   './index.html?v=112',
