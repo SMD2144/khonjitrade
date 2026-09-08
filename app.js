@@ -37,7 +37,7 @@ function eq18(t){
   if(t.asset==='آبشده'||t.asset==='طلای متفرقه')return t.qty;
   return 0;
 }
-function goldBalance(){return state.trades.reduce((a,t)=>a+sign(t)*eq18(t),0)}
+function calcGoldBalance(){return state.trades.reduce((a,t)=>a+sign(t)*eq18(t),0)}
 function rawGold(){return state.trades.reduce((a,t)=>a+(t.asset==='آبشده'||t.asset==='طلای متفرقه'?sign(t)*t.qty:0),0)}
 function coinBal(name){return state.trades.reduce((a,t)=>a+(t.asset===name?sign(t)*t.qty:0),0)}
 function curBal(name){return state.trades.reduce((a,t)=>a+(t.asset===name?sign(t)*t.qty:0),0)}
@@ -81,21 +81,21 @@ function renderDashboard(){
   const today=state.trades.filter(isToday);
   const buy=today.filter(t=>t.side==='BUY').reduce((a,t)=>a+eq18(t),0);
   const sell=today.filter(t=>t.side==='SELL').reduce((a,t)=>a+eq18(t),0);
-  const bal=goldBalance();
-  buyToday.textContent=fmt(buy); sellToday.textContent=fmt(sell); goldBalance.textContent=signed(bal);
-  mainAdvice.textContent=bal>0?`برای بالانس ${fmt(bal)} گرم بفروش`:bal<0?`برای بالانس ${fmt(bal)} گرم بخر`:'بالانس طلا صفر است';
+  const bal=calcGoldBalance();
+  document.getElementById('buyToday').textContent=fmt(buy); document.getElementById('sellToday').textContent=fmt(sell); document.getElementById('goldBalance').textContent=signed(bal);
+  document.getElementById('mainAdvice').textContent=bal>0?`برای بالانس ${fmt(bal)} گرم بفروش`:bal<0?`برای بالانس ${fmt(bal)} گرم بخر`:'بالانس طلا صفر است';
   const unnamed=today.filter(t=>!t.party).length;
-  todaySummary.innerHTML=`تعداد معاملات امروز: <b>${fmt(today.length,0)}</b><br>ثبت‌های بدون طرف حساب: <b>${fmt(unnamed,0)}</b><br>طلای وزنی: <b>${signed(rawGold())} گرم</b>`;
+  document.getElementById('todaySummary').innerHTML=`تعداد معاملات امروز: <b>${fmt(today.length,0)}</b><br>ثبت‌های بدون طرف حساب: <b>${fmt(unnamed,0)}</b><br>طلای وزنی: <b>${signed(rawGold())} گرم</b>`;
 
   const rg=rawGold(),fc=coinBal('تمام سکه'),hc=coinBal('نیم سکه'),qc=coinBal('ربع سکه'),fxb=usdBalance();
-  sideRawGold.textContent = Math.abs(rg)<1e-9 ? 'بالانس' : `${fmt(rg)} گرم ${rg>0?'بفروش':'بخر'}`;
-  sideFullCoin.textContent = coinActionMini(fc,'تمام');
-  sideHalfCoin.textContent = coinActionMini(hc,'نیم');
-  sideQuarterCoin.textContent = coinActionMini(qc,'ربع');
-  sideFx.textContent = Math.abs(fxb)<1e-9 ? 'بالانس' : `${fmt(fxb)} دلار ${fxb>0?'بفروش':'بخر'}`;
+  document.getElementById('sideRawGold').textContent = Math.abs(rg)<1e-9 ? 'بالانس' : `${fmt(rg)} گرم ${rg>0?'بفروش':'بخر'}`;
+  document.getElementById('sideFullCoin').textContent = coinActionMini(fc,'تمام');
+  document.getElementById('sideHalfCoin').textContent = coinActionMini(hc,'نیم');
+  document.getElementById('sideQuarterCoin').textContent = coinActionMini(qc,'ربع');
+  document.getElementById('sideFx').textContent = Math.abs(fxb)<1e-9 ? 'بالانس' : `${fmt(fxb)} دلار ${fxb>0?'بفروش':'بخر'}`;
 
   const recent=[...today].sort((a,b)=>b.ts-a.ts).slice(0,4);
-  recentMini.innerHTML = recent.length ? recent.map(t=>`
+  document.getElementById('recentMini').innerHTML = recent.length ? recent.map(t=>`
     <div class="recentMiniItem">
       <div><b>${t.side==='BUY'?'خرید':'فروش'} ${t.asset}</b><br><small>${t.party||'بدون طرف حساب'}</small></div>
       <strong>${fmt(t.qty)}</strong>
@@ -239,14 +239,14 @@ function renderLedger(){
 function renderReport(){
   setView(cloneTpl('reportTpl'));
   const cards=[];
-  const g=goldBalance(),raw=rawGold(),usd=usdBalance();
+  const g=calcGoldBalance(),raw=rawGold(),usd=usdBalance();
   cards.push(['بالانس کل ۱۸ عیار',`${signed(g)} گرم`,action(g,'گرم')]);
   cards.push(['طلای وزنی',`${signed(raw)} گرم`,action(raw,'گرم')]);
   ['تمام سکه','نیم سکه','ربع سکه'].forEach(c=>{const b=coinBal(c);if(Math.abs(b)>1e-9)cards.push([c,`${signed(b)} عدد`,action(b,'عدد',c)])});
   const curs=[...new Set(['دلار','درهم','یورو','ریال قطر','لیر','ریال عمان',...state.currencies])];
   curs.forEach(c=>{const b=curBal(c);if(Math.abs(b)>1e-9)cards.push([c,signed(b),action(b,c)])});
   cards.push(['بالانس کلی ارز — معادل دلار',`${signed(usd)} دلار`,action(usd,'دلار')]);
-  reportCards.innerHTML=cards.map(([t,v,a])=>`<article class="reportCard"><h3>${t}</h3><strong>${v}</strong><div class="action">${a}</div></article>`).join('');
+  document.getElementById('reportCards').innerHTML=cards.map(([t,v,a])=>`<article class="reportCard"><h3>${t}</h3><strong>${v}</strong><div class="action">${a}</div></article>`).join('');
 }
 
 function renderSettings(){

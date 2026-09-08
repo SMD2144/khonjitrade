@@ -17,3 +17,10 @@ localStorage key = khonji_pwa_v1
 - کنتراست بهتر فیلد فعال
 - نوار پایین بزرگ‌تر و مناسب تبلت
 - cache جدید برای دریافت نسخه تازه در iPad
+
+
+v1.1.1 BALANCE DISPLAY FIX
+- Fixed DOM/function name collision for goldBalance.
+- Balance calculation data was correct; only the dashboard card stayed at zero.
+- Dashboard element access now uses explicit getElementById calls.
+- localStorage key remains khonji_pwa_v1, so existing iPad data is preserved.
