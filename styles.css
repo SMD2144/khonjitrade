@@ -513,3 +513,165 @@ body.dark .stepField input{
   .metric span{font-size:14px}
   .quickGrid span{font-size:17px}
 }
+
+
+/* ===== v1.3.0 Multi-Coin Settlement Picker ===== */
+.coverageHint{
+  color:var(--muted);
+  font-size:12px;
+  margin-bottom:7px;
+  line-height:1.6;
+}
+
+.settlementOverlay{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(0,0,0,.58);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+.settlementModal{
+  width:min(620px,100%);
+  max-height:min(760px,calc(100vh - 48px));
+  overflow:auto;
+  background:var(--surface);
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:26px;
+  box-shadow:0 28px 80px rgba(0,0,0,.45);
+  padding:20px;
+}
+
+.settlementModalHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:16px;
+}
+.settlementModalHead h3{
+  margin:0 0 6px;
+  font-size:22px;
+}
+.settlementModalHead small{color:var(--muted)}
+.modalClose{
+  width:44px;height:44px;
+  flex:0 0 44px;
+  border:0;
+  border-radius:14px;
+  background:var(--surface2);
+  color:var(--text);
+  font-size:28px;
+}
+
+.settlementPickerRows{
+  display:grid;
+  gap:10px;
+}
+
+.pickerCoinRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:14px 16px;
+  border:1px solid var(--line);
+  background:var(--surface2);
+  border-radius:18px;
+}
+
+.pickerCoinName b{display:block;font-size:17px}
+.pickerCoinName small{
+  display:block;
+  color:var(--muted);
+  margin-top:4px;
+}
+
+.pickerStepper{
+  direction:ltr;
+  display:grid;
+  grid-template-columns:52px 56px 52px;
+  align-items:center;
+  gap:8px;
+}
+.pickerStepper button{
+  height:48px;
+  border:0;
+  border-radius:14px;
+  font-size:25px;
+  font-weight:800;
+  background:var(--surface);
+  color:var(--text);
+  border:1px solid var(--line);
+}
+.pickerStepper button[data-op="plus"]{
+  background:var(--green);
+  color:#fff;
+}
+.pickerStepper button[data-op="minus"]{
+  color:var(--red);
+}
+.pickerStepper strong{
+  text-align:center;
+  font-size:20px;
+}
+
+.settlementCalc{
+  margin-top:14px;
+  padding:14px 16px;
+  border-radius:18px;
+  background:color-mix(in srgb,var(--gold) 8%,var(--surface2));
+  border:1px solid color-mix(in srgb,var(--gold) 28%,var(--line));
+}
+.settlementCalc > div{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:6px 0;
+}
+.settlementCalc span{color:var(--muted)}
+.settlementCalc strong{color:var(--gold)}
+.pickerWarning{
+  margin:8px 0 0;
+  color:var(--gold);
+  font-size:13px;
+}
+.pickerWarning.bad{color:var(--red)}
+
+.settlementModalActions{
+  display:grid;
+  grid-template-columns:1fr 1.5fr;
+  gap:10px;
+  margin-top:16px;
+}
+.settlementModalActions button{
+  min-height:54px;
+  border:0;
+  border-radius:16px;
+  font-weight:800;
+  font-size:16px;
+}
+.cancelSettle{
+  background:var(--surface2);
+  color:var(--text);
+}
+.confirmSettle{
+  background:var(--green);
+  color:#fff;
+}
+.confirmSettle:disabled{
+  opacity:.38;
+}
+
+@media (max-width:850px) and (orientation:portrait){
+  .settlementOverlay{padding:16px}
+  .settlementModal{padding:16px;border-radius:22px}
+  .pickerCoinRow{padding:12px}
+  .pickerStepper{grid-template-columns:48px 48px 48px;gap:6px}
+}

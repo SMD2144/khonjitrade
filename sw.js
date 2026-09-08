@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.2.2-portrait-fix';
+const CACHE='khonji-pwa-v1.3.0-multicoin';
 const CORE=[
   './',
   './index.html?v=112',
