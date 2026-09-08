@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
-  <link rel="stylesheet" href="styles.css?v=112"/>
+  <link rel="stylesheet" href="styles.css?v=120"/>
   <title>دفتر معاملات طلا</title>
 </head>
 <body>
@@ -64,10 +64,10 @@
     <aside class="tabletSide">
       <div class="sectionTitle sideTitle">وضعیت لحظه‌ای</div>
       <section class="panel sidePanel">
-        <div class="sideRow"><span>طلای وزنی</span><strong id="sideRawGold">0</strong></div>
-        <div class="sideRow"><span>تمام سکه</span><strong id="sideFullCoin">بالانس</strong></div>
-        <div class="sideRow"><span>نیم سکه</span><strong id="sideHalfCoin">بالانس</strong></div>
-        <div class="sideRow"><span>ربع سکه</span><strong id="sideQuarterCoin">بالانس</strong></div>
+        <div class="sideRow settlementRow"><span>طلای وزنی</span><strong id="sideRawGold">0</strong><div id="actRawGold"></div></div>
+        <div class="sideRow settlementRow"><span>تمام سکه</span><strong id="sideFullCoin">بالانس</strong><div id="actFullCoin"></div></div>
+        <div class="sideRow settlementRow"><span>نیم سکه</span><strong id="sideHalfCoin">بالانس</strong><div id="actHalfCoin"></div></div>
+        <div class="sideRow settlementRow"><span>ربع سکه</span><strong id="sideQuarterCoin">بالانس</strong><div id="actQuarterCoin"></div></div>
         <div class="sideRow"><span>بالانس ارزی</span><strong id="sideFx">0 $</strong></div>
       </section>
 
@@ -161,6 +161,8 @@
 <template id="reportTpl">
   <div class="sectionTitle">گزارش و بالانس</div>
   <section id="reportCards" class="reportList"></section>
+  <div class="sectionTitle">تسویه‌های داخلی</div>
+  <section id="settlementHistory" class="reportList"></section>
 </template>
 
 <template id="settingsTpl">
@@ -202,6 +204,6 @@
   </section>
 </template>
 
-<script src="app.js?v=112"></script>
+<script src="app.js?v=120"></script>
 </body>
 </html>

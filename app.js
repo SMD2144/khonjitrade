@@ -42,6 +42,24 @@ function calcGoldBalance(){return state.trades.reduce((a,t)=>a+sign(t)*eq18(t),0
 function rawGold(){return state.trades.reduce((a,t)=>a+(t.asset==='آبشده'||t.asset==='طلای متفرقه'?sign(t)*t.qty:0),0)}
 function coinBal(name){return state.trades.reduce((a,t)=>a+(t.asset===name?sign(t)*t.qty:0),0)}
 function curBal(name){return state.trades.reduce((a,t)=>a+(t.asset===name?sign(t)*t.qty:0),0)}
+
+function coinEq18(name,qty){
+  if(name==='تمام سکه')return qty*9.756;
+  if(name==='نیم سکه')return qty*4.878;
+  if(name==='ربع سکه')return qty*2.439;
+  return 0;
+}
+function coinQtyFor18(name,grams){
+  const u = name==='تمام سکه'?9.756:name==='نیم سکه'?4.878:name==='ربع سکه'?2.439:0;
+  return u>0 ? grams/u : 0;
+}
+function settlementTrades(){
+  return state.trades.filter(t=>t.kind==='SETTLEMENT');
+}
+function normalTrades(){
+  return state.trades.filter(t=>t.kind!=='SETTLEMENT');
+}
+
 function usdRate(n){
   if(n==='دلار')return 1;
   if(n==='درهم')return 1/state.fx.usdAed;
@@ -61,6 +79,62 @@ function action(balance,unit,name=''){
   if(Math.abs(balance)<1e-9)return 'بالانس';
   return `${fmt(balance)} ${unit}${name?' '+name:''} ${balance>0?'بفروش':'بخر'}`;
 }
+function settlementConfirm(message){
+  return confirm(message + '\n\nاین ثبت به عنوان «تسویه داخلی» ذخیره می‌شود.');
+}
+function addSettlement({coinAsset, coinQty, goldGrams, direction}){
+  // direction:
+  // GOLD_TO_COIN = consume positive gold to cover negative coin
+  // COIN_TO_GOLD = consume positive coin to cover negative gold
+  const groupId='SET-'+Date.now();
+  const ts=Date.now();
+
+  if(direction==='GOLD_TO_COIN'){
+    // reduce positive gold -> synthetic SELL gold
+    state.trades.unshift({
+      id:ts+1, groupId, kind:'SETTLEMENT', leg:'GOLD',
+      side:'SELL', asset:'آبشده', qty:goldGrams,
+      total:0, rate:0, party:'تسویه داخلی',
+      note:`پوشش ${fmt(coinQty)} ${coinAsset} با ${fmt(goldGrams)} گرم طلا`,
+      coinType:'BANK', autoQty:false, ts
+    });
+    // cover negative coin -> synthetic BUY coin
+    state.trades.unshift({
+      id:ts+2, groupId, kind:'SETTLEMENT', leg:'COIN',
+      side:'BUY', asset:coinAsset, qty:coinQty,
+      total:0, rate:0, party:'تسویه داخلی',
+      note:`معادل ${fmt(goldGrams)} گرم طلا`,
+      coinType:'BANK', autoQty:false, ts
+    });
+  }else{
+    // reduce positive coin -> synthetic SELL coin
+    state.trades.unshift({
+      id:ts+1, groupId, kind:'SETTLEMENT', leg:'COIN',
+      side:'SELL', asset:coinAsset, qty:coinQty,
+      total:0, rate:0, party:'تسویه داخلی',
+      note:`پوشش ${fmt(goldGrams)} گرم طلا با ${fmt(coinQty)} ${coinAsset}`,
+      coinType:'BANK', autoQty:false, ts
+    });
+    // cover negative gold -> synthetic BUY gold
+    state.trades.unshift({
+      id:ts+2, groupId, kind:'SETTLEMENT', leg:'GOLD',
+      side:'BUY', asset:'آبشده', qty:goldGrams,
+      total:0, rate:0, party:'تسویه داخلی',
+      note:`معادل ${fmt(coinQty)} ${coinAsset}`,
+      coinType:'BANK', autoQty:false, ts
+    });
+  }
+  save();
+}
+function settlementSummaryGroups(){
+  const groups={};
+  settlementTrades().forEach(t=>{
+    if(!groups[t.groupId]) groups[t.groupId]={groupId:t.groupId,ts:t.ts,legs:[]};
+    groups[t.groupId].legs.push(t);
+  });
+  return Object.values(groups).sort((a,b)=>b.ts-a.ts);
+}
+
 function setTheme(){
   document.body.classList.toggle('dark',state.theme==='dark');
   document.querySelector('meta[name="theme-color"]').setAttribute('content',state.theme==='dark'?'#0f1115':'#f7f5ef');
@@ -94,6 +168,69 @@ function renderDashboard(){
   document.getElementById('sideHalfCoin').textContent = coinActionMini(hc,'نیم');
   document.getElementById('sideQuarterCoin').textContent = coinActionMini(qc,'ربع');
   document.getElementById('sideFx').textContent = Math.abs(fxb)<1e-9 ? 'بالانس' : `${fmt(fxb)} دلار ${fxb>0?'بفروش':'بخر'}`;
+
+  function clearSettlementActions(){
+    ['actRawGold','actFullCoin','actHalfCoin','actQuarterCoin'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.innerHTML='';
+    });
+  }
+  clearSettlementActions();
+
+  const coinStates=[
+    {name:'تمام سکه', bal:fc, actionId:'actFullCoin'},
+    {name:'نیم سکه', bal:hc, actionId:'actHalfCoin'},
+    {name:'ربع سکه', bal:qc, actionId:'actQuarterCoin'}
+  ];
+
+  // Case 1: positive gold, negative coin -> offer covering coin from gold.
+  if(rg>0){
+    coinStates.forEach(c=>{
+      if(c.bal<0){
+        const needQty=Math.abs(c.bal);
+        const needGold=coinEq18(c.name,needQty);
+        const coverQty=Math.min(needQty,coinQtyFor18(c.name,rg));
+        const coverGold=coinEq18(c.name,coverQty);
+        if(coverQty>0.000001){
+          const wrap=document.getElementById(c.actionId);
+          wrap.innerHTML=`<button class="settleBtn">از طلا پوشش بده</button>`;
+          wrap.querySelector('button').onclick=()=>{
+            const q=coverQty,g=coverGold;
+            const msg=`${fmt(q)} ${c.name} با ${fmt(g)} گرم طلا پوشش داده شود؟`;
+            if(settlementConfirm(msg)){
+              addSettlement({coinAsset:c.name,coinQty:q,goldGrams:g,direction:'GOLD_TO_COIN'});
+              renderDashboard();
+            }
+          };
+        }
+      }
+    });
+  }
+
+  // Case 2: negative gold, positive coin -> offer covering gold from coin.
+  if(rg<0){
+    const goldNeed=Math.abs(rg);
+    for(const c of coinStates){
+      if(c.bal>0){
+        const coinEq=coinEq18(c.name,c.bal);
+        const coverGold=Math.min(goldNeed,coinEq);
+        const coverQty=Math.min(c.bal,coinQtyFor18(c.name,coverGold));
+        if(coverQty>0.000001){
+          const wrap=document.getElementById('actRawGold');
+          wrap.innerHTML=`<button class="settleBtn">از سکه پوشش بده</button>`;
+          wrap.querySelector('button').onclick=()=>{
+            const q=coverQty,g=coinEq18(c.name,q);
+            const msg=`${fmt(g)} گرم طلا با ${fmt(q)} ${c.name} پوشش داده شود؟`;
+            if(settlementConfirm(msg)){
+              addSettlement({coinAsset:c.name,coinQty:q,goldGrams:g,direction:'COIN_TO_GOLD'});
+              renderDashboard();
+            }
+          };
+          break; // one concise suggestion at a time
+        }
+      }
+    }
+  }
+
 
   const recent=[...today].sort((a,b)=>b.ts-a.ts).slice(0,4);
   document.getElementById('recentMini').innerHTML = recent.length ? recent.map(t=>`
@@ -228,7 +365,8 @@ function renderLedger(){
   ledgerList.innerHTML=data.length?'':'<div class="panel">ثبت امروز پیدا نشد.</div>';
   data.forEach(t=>{
     const el=document.createElement('article');el.className='tradeCard';
-    el.innerHTML=`<div class="top"><b>${t.asset} • ${fmt(t.qty)}</b><span class="pill ${t.side==='BUY'?'buy':'sell'}">${t.side==='BUY'?'خرید':'فروش'}</span></div>
+    const settlementBadge=t.kind==='SETTLEMENT' ? '<span class="settlementBadge">تسویه داخلی</span>' : '';
+    el.innerHTML=`<div class="top"><b>${t.asset} • ${fmt(t.qty)} ${settlementBadge}</b><span class="pill ${t.side==='BUY'?'buy':'sell'}">${t.side==='BUY'?'خرید':'فروش'}</span></div>
       <div class="meta">${t.party?`طرف حساب: ${t.party}`:'بدون طرف حساب'}${t.total?`<br>مبلغ: ${new Intl.NumberFormat('fa-IR').format(t.total)} تومان`:''}${t.rate?`<br>نرخ: ${new Intl.NumberFormat('fa-IR').format(t.rate)}`:''}${t.note?`<br>${t.note}`:''}</div>
       <div class="actions"><button data-edit>ویرایش</button><button data-del>حذف</button></div>`;
     el.querySelector('[data-edit]').onclick=()=>{editId=t.id;entryType=t.asset.includes('سکه')?'COIN':(t.asset==='آبشده'||t.asset==='طلای متفرقه')?'GOLD':t.asset==='دلار'?'USD':t.asset==='درهم'?'AED':t.asset==='یورو'?'EUR':'CUSTOM';show('entry')};
@@ -248,6 +386,20 @@ function renderReport(){
   curs.forEach(c=>{const b=curBal(c);if(Math.abs(b)>1e-9)cards.push([c,signed(b),action(b,c)])});
   cards.push(['بالانس کلی ارز — معادل دلار',`${signed(usd)} دلار`,action(usd,'دلار')]);
   document.getElementById('reportCards').innerHTML=cards.map(([t,v,a])=>`<article class="reportCard"><h3>${t}</h3><strong>${v}</strong><div class="action">${a}</div></article>`).join('');
+
+  const groups=settlementSummaryGroups();
+  document.getElementById('settlementHistory').innerHTML = groups.length ? groups.map(g=>{
+    const coinLeg=g.legs.find(x=>x.leg==='COIN');
+    const goldLeg=g.legs.find(x=>x.leg==='GOLD');
+    if(!coinLeg||!goldLeg) return '';
+    const dir = coinLeg.side==='BUY' ? 'طلا → سکه' : 'سکه → طلا';
+    return `<article class="reportCard settlementCard">
+      <h3>${dir}</h3>
+      <strong>${fmt(coinLeg.qty)} ${coinLeg.asset}</strong>
+      <div class="action">معادل ${fmt(goldLeg.qty)} گرم طلا</div>
+      <small>${new Date(g.ts).toLocaleString('fa-IR')}</small>
+    </article>`;
+  }).join('') : '<div class="panel mutedBox">هنوز تسویه داخلی ثبت نشده</div>';
 }
 
 function renderSettings(){

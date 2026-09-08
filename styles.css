@@ -298,3 +298,44 @@ body.dark .stepField input{
   color:#fff;
   caret-color:#d8a83e;
 }
+
+
+/* ===== Internal Balance Settlement ===== */
+.settlementRow{
+  display:grid !important;
+  grid-template-columns:1fr auto;
+  grid-template-areas:
+    "label value"
+    "action action";
+  gap:6px 10px;
+  padding:8px 0;
+}
+.settlementRow > span{grid-area:label}
+.settlementRow > strong{grid-area:value}
+.settlementRow > div{grid-area:action}
+.settleBtn{
+  width:100%;
+  border:1px solid color-mix(in srgb,var(--gold) 42%,var(--line));
+  background:color-mix(in srgb,var(--gold) 12%,var(--surface2));
+  color:var(--gold);
+  padding:9px 12px;
+  border-radius:12px;
+  font-size:13px;
+  font-weight:800;
+}
+.settleBtn:active{transform:scale(.99)}
+.settlementBadge{
+  display:inline-block;
+  margin-right:6px;
+  padding:3px 7px;
+  border-radius:999px;
+  background:color-mix(in srgb,var(--gold) 17%,var(--surface2));
+  color:var(--gold);
+  font-size:11px;
+  vertical-align:middle;
+}
+.settlementCard{
+  border-color:color-mix(in srgb,var(--gold) 35%,var(--line));
+}
+.settlementCard small{display:block;margin-top:9px;color:var(--muted)}
+.mutedBox{color:var(--muted)}

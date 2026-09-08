@@ -32,3 +32,14 @@ v1.1.2 FORCE UPDATE
 - index/app/css use network-first with no-store.
 - Old caches are deleted on activation.
 - Existing localStorage data remains unchanged.
+
+
+v1.2.0 INTERNAL BALANCE SETTLEMENT
+- پیشنهاد کوتاه «از طلا پوشش بده» برای کسری سکه وقتی طلای وزنی مثبت است.
+- پیشنهاد کوتاه «از سکه پوشش بده» برای کسری طلا وقتی سکه مثبت است.
+- تأیید دو مرحله‌ای قبل از ثبت.
+- ثبت به صورت رکورد مستقل نوع SETTLEMENT.
+- نمایش تسویه داخلی در دفتر امروز.
+- نمایش تاریخچه تسویه‌ها در گزارش.
+- بالانس کل 18 عیار با تبدیل داخلی تغییر مصنوعی نمی‌کند؛ فقط ترکیب دارایی‌ها تغییر می‌کند.
+- localStorage key unchanged: khonji_pwa_v1
