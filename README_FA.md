@@ -24,3 +24,11 @@ v1.1.1 BALANCE DISPLAY FIX
 - Balance calculation data was correct; only the dashboard card stayed at zero.
 - Dashboard element access now uses explicit getElementById calls.
 - localStorage key remains khonji_pwa_v1, so existing iPad data is preserved.
+
+
+v1.1.2 FORCE UPDATE
+- Static assets use version query strings.
+- Service worker uses skipWaiting + clientsClaim.
+- index/app/css use network-first with no-store.
+- Old caches are deleted on activation.
+- Existing localStorage data remains unchanged.
