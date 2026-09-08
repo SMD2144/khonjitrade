@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+  <meta name="theme-color" content="#0f1115"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.svg"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <title>دفتر معاملات طلا</title>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div>
+      <h1>دفتر معاملات طلا</h1>
+      <p>ثبت سریع، دفتر روزانه و بالانس</p>
+    </div>
+    <button id="themeBtn" class="iconBtn">◐</button>
+  </header>
+
+  <main id="view"></main>
+
+  <nav class="bottomNav">
+    <button data-view="dashboard">داشبورد</button>
+    <button data-view="report">گزارش</button>
+    <button data-view="entry" class="primaryNav">ثبت سریع</button>
+    <button data-view="ledger">دفتر امروز</button>
+    <button data-view="settings">بیشتر</button>
+  </nav>
+</div>
+
+<template id="dashboardTpl">
+  <section class="cards3">
+    <button class="metric buy" data-action="open-buy">
+      <span>خرید امروز</span><strong id="buyToday">0</strong><small>گرم ۱۸ عیار</small>
+    </button>
+    <button class="metric sell" data-action="open-sell">
+      <span>فروش امروز</span><strong id="sellToday">0</strong><small>گرم ۱۸ عیار</small>
+    </button>
+    <button class="metric gold" data-action="open-balance">
+      <span>بالانس کل ۱۸ عیار</span><strong id="goldBalance">0</strong><small>گرم</small>
+    </button>
+  </section>
+
+  <button class="advice" id="mainAdvice"></button>
+
+  <div class="sectionTitle">ثبت سریع</div>
+  <section class="quickGrid">
+    <button data-quick="GOLD"><b>▰</b><span>طلای آبشده</span><small>آبشده / متفرقه</small></button>
+    <button data-quick="COIN"><b>●</b><span>سکه</span><small>تمام / نیم / ربع</small></button>
+    <button data-quick="USD"><b>$</b><span>دلار</span><small>USD</small></button>
+    <button data-quick="AED"><b>د</b><span>درهم</span><small>AED</small></button>
+    <button data-quick="EUR"><b>€</b><span>یورو</span><small>EUR</small></button>
+    <button data-quick="CUSTOM"><b>＋</b><span>ارز جدید</span><small>افزودن / ثبت</small></button>
+  </section>
+
+  <div class="sectionTitle">خلاصه امروز</div>
+  <section class="panel" id="todaySummary"></section>
+</template>
+
+<template id="entryTpl">
+  <section class="entryHeader panel">
+    <div>
+      <h2 id="entryTitle">ثبت سریع</h2>
+      <p id="entrySub">نوع دارایی را انتخاب کن</p>
+    </div>
+  </section>
+
+  <section id="assetChooser" class="panel hidden"></section>
+
+  <section id="coinChooser" class="segRow hidden">
+    <button data-coin="تمام سکه" class="active">تمام سکه</button>
+    <button data-coin="نیم سکه">نیم سکه</button>
+    <button data-coin="ربع سکه">ربع سکه</button>
+  </section>
+
+  <label id="normalCoinWrap" class="checkRow hidden">
+    <input type="checkbox" id="normalCoin"/> <span>عادی</span>
+    <small>پیش‌فرض: بانکی</small>
+  </label>
+
+  <section class="segRow buySell">
+    <button id="buyBtn" class="active buy">خرید</button>
+    <button id="sellBtn" class="sell">فروش</button>
+  </section>
+
+  <section class="stepField panel">
+    <button id="minusBtn" class="minus">−</button>
+    <div>
+      <label id="qtyLabel">وزن / تعداد / مقدار</label>
+      <input id="qty" inputmode="decimal" autocomplete="off"/>
+    </div>
+    <button id="plusBtn" class="plus">+</button>
+  </section>
+
+  <div id="chips" class="chips"></div>
+
+  <label class="field panel">
+    <span>مبلغ کل (تومان) — اختیاری</span>
+    <input id="total" inputmode="numeric" autocomplete="off"/>
+  </label>
+
+  <label class="field panel">
+    <span>نرخ واحد (تومان) — اختیاری</span>
+    <input id="unitRate" inputmode="numeric" autocomplete="off"/>
+  </label>
+
+  <div id="autoWeight" class="autoWeight hidden"></div>
+
+  <label class="field panel">
+    <span>طرف حساب — اختیاری</span>
+    <input id="party" autocomplete="off"/>
+  </label>
+
+  <label class="field panel">
+    <span>توضیحات — اختیاری</span>
+    <textarea id="note" rows="4"></textarea>
+  </label>
+
+  <div class="entrySpacer"></div>
+  <button id="saveTrade" class="stickySave">ثبت خرید</button>
+</template>
+
+<template id="ledgerTpl">
+  <div class="sectionTitle">دفتر امروز</div>
+  <div class="filters">
+    <button data-filter="ALL" class="active">همه</button>
+    <button data-filter="BUY">خرید</button>
+    <button data-filter="SELL">فروش</button>
+    <button data-filter="UNNAMED">بدون نام</button>
+  </div>
+  <section id="ledgerList" class="ledgerList"></section>
+</template>
+
+<template id="reportTpl">
+  <div class="sectionTitle">گزارش و بالانس</div>
+  <section id="reportCards" class="reportList"></section>
+</template>
+
+<template id="settingsTpl">
+  <div class="sectionTitle">تنظیمات</div>
+
+  <section class="panel">
+    <h3>ضرایب تبدیل ارز</h3>
+    <div class="settingsGrid">
+      <label>دلار / درهم<input id="usdAed" inputmode="decimal"/></label>
+      <label>یورو / دلار<input id="eurUsd" inputmode="decimal"/></label>
+      <label>دلار / ریال قطر<input id="usdQar" inputmode="decimal"/></label>
+      <label>دلار / لیر<input id="usdTry" inputmode="decimal"/></label>
+      <label>ریال عمان / درهم<input id="omrAed" inputmode="decimal"/></label>
+    </div>
+    <button id="saveFx" class="secondaryBtn">ذخیره ضرایب</button>
+  </section>
+
+  <section class="panel">
+    <h3>ارزهای سفارشی</h3>
+    <div class="inlineAdd">
+      <input id="customCurrencyName" placeholder="مثلاً پوند"/>
+      <button id="addCurrencyBtn">افزودن</button>
+    </div>
+    <div id="currencyList" class="tagList"></div>
+  </section>
+
+  <section class="panel">
+    <h3>بکاپ اطلاعات</h3>
+    <p>بکاپ شامل تمام معاملات، ارزهای سفارشی و ضرایب تبدیل است.</p>
+    <div class="twoBtns">
+      <button id="exportBtn">خروجی JSON</button>
+      <label class="fileBtn">بازیابی JSON<input id="importFile" type="file" accept=".json,application/json"/></label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>مبنای سکه به معادل ۱۸ عیار</h3>
+    <p>تمام: ۹٫۷۵۶ گرم<br/>نیم: ۴٫۸۷۸ گرم<br/>ربع: ۲٫۴۳۹ گرم</p>
+  </section>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>
