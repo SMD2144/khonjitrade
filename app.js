@@ -23,6 +23,14 @@ function coinActionMini(v,name){
   if(Math.abs(v)<1e-9)return 'بالانس';
   return `${fmt(v)} ${name} • ${v>0?'بفروش':'بخر'}`;
 }
+function liveStatusHtml(value, text){
+  if(Math.abs(value)<1e-9){
+    return `<span class="liveState balanced">${text}</span>`;
+  }
+  const cls=value>0?'sellState':'buyState';
+  return `<span class="liveState ${cls}"><i class="statusDot"></i>${text}</span>`;
+}
+
 function formatMoneyInput(el){
   const raw=el.value.replace(/[^0-9]/g,'');
   if(!raw){el.value='';return}
@@ -466,17 +474,37 @@ function renderDashboard(){
   const buy=today.filter(t=>t.side==='BUY').reduce((a,t)=>a+eq18(t),0);
   const sell=today.filter(t=>t.side==='SELL').reduce((a,t)=>a+eq18(t),0);
   const bal=calcGoldBalance();
-  document.getElementById('buyToday').textContent=fmt(buy); document.getElementById('sellToday').textContent=fmt(sell); document.getElementById('goldBalance').textContent=signed(bal);
+  document.getElementById('buyToday').textContent=fmt(buy);
+  document.getElementById('sellToday').textContent=fmt(sell);
+  const gb=document.getElementById('goldBalance');
+  gb.textContent=signed(bal);
+  gb.classList.remove('balancePositive','balanceNegative','balanceZero');
+  gb.classList.add(Math.abs(bal)<1e-9?'balanceZero':bal>0?'balancePositive':'balanceNegative');
   document.getElementById('mainAdvice').textContent=bal>0?`برای بالانس ${fmt(bal)} گرم بفروش`:bal<0?`برای بالانس ${fmt(bal)} گرم بخر`:'بالانس طلا صفر است';
   const unnamed=today.filter(t=>!t.party).length;
   document.getElementById('todaySummary').innerHTML=`تعداد معاملات امروز: <b>${fmt(today.length,0)}</b><br>ثبت‌های بدون طرف حساب: <b>${fmt(unnamed,0)}</b><br>طلای وزنی: <b>${signed(rawGold())} گرم</b>`;
 
   const rg=rawGold(),fc=coinBal('تمام سکه'),hc=coinBal('نیم سکه'),qc=coinBal('ربع سکه'),fxb=usdBalance();
-  document.getElementById('sideRawGold').textContent = Math.abs(rg)<1e-9 ? 'بالانس' : `${fmt(rg)} گرم • ${rg>0?'بفروش':'بخر'}`;
-  document.getElementById('sideFullCoin').textContent = coinActionMini(fc,'تمام');
-  document.getElementById('sideHalfCoin').textContent = coinActionMini(hc,'نیم');
-  document.getElementById('sideQuarterCoin').textContent = coinActionMini(qc,'ربع');
-  document.getElementById('sideFx').textContent = Math.abs(fxb)<1e-9 ? 'بالانس' : `${fmt(fxb)} دلار ${fxb>0?'بفروش':'بخر'}`;
+  document.getElementById('sideRawGold').innerHTML = liveStatusHtml(
+    rg,
+    Math.abs(rg)<1e-9 ? 'بالانس' : `${fmt(Math.abs(rg))} گرم • ${rg>0?'بفروش':'بخر'}`
+  );
+  document.getElementById('sideFullCoin').innerHTML = liveStatusHtml(
+    fc,
+    Math.abs(fc)<1e-9 ? 'بالانس' : `${fmt(Math.abs(fc),0)} تمام • ${fc>0?'بفروش':'بخر'}`
+  );
+  document.getElementById('sideHalfCoin').innerHTML = liveStatusHtml(
+    hc,
+    Math.abs(hc)<1e-9 ? 'بالانس' : `${fmt(Math.abs(hc),0)} نیم • ${hc>0?'بفروش':'بخر'}`
+  );
+  document.getElementById('sideQuarterCoin').innerHTML = liveStatusHtml(
+    qc,
+    Math.abs(qc)<1e-9 ? 'بالانس' : `${fmt(Math.abs(qc),0)} ربع • ${qc>0?'بفروش':'بخر'}`
+  );
+  document.getElementById('sideFx').innerHTML = liveStatusHtml(
+    fxb,
+    Math.abs(fxb)<1e-9 ? 'بالانس' : `${fmt(Math.abs(fxb))} دلار • ${fxb>0?'بفروش':'بخر'}`
+  );
 
   function clearSettlementActions(){
     ['actRawGold','actFullCoin','actHalfCoin','actQuarterCoin'].forEach(id=>{

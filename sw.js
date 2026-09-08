@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.5.0-robust-cover';
+const CACHE='khonji-pwa-v1.5.1-live-colors';
 const CORE=[
   './',
   './index.html?v=112',
