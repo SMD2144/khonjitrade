@@ -34,32 +34,50 @@
 </div>
 
 <template id="dashboardTpl">
-  <section class="cards3">
-    <button class="metric buy" data-action="open-buy">
-      <span>خرید امروز</span><strong id="buyToday">0</strong><small>گرم ۱۸ عیار</small>
-    </button>
-    <button class="metric sell" data-action="open-sell">
-      <span>فروش امروز</span><strong id="sellToday">0</strong><small>گرم ۱۸ عیار</small>
-    </button>
-    <button class="metric gold" data-action="open-balance">
-      <span>بالانس کل ۱۸ عیار</span><strong id="goldBalance">0</strong><small>گرم</small>
-    </button>
-  </section>
+  <section class="tabletDashboard">
+    <div class="tabletMain">
+      <section class="cards3">
+        <button class="metric buy" data-action="open-buy">
+          <span>خرید امروز</span><strong id="buyToday">0</strong><small>گرم ۱۸ عیار</small>
+        </button>
+        <button class="metric sell" data-action="open-sell">
+          <span>فروش امروز</span><strong id="sellToday">0</strong><small>گرم ۱۸ عیار</small>
+        </button>
+        <button class="metric gold" data-action="open-balance">
+          <span>بالانس کل ۱۸ عیار</span><strong id="goldBalance">0</strong><small>گرم</small>
+        </button>
+      </section>
 
-  <button class="advice" id="mainAdvice"></button>
+      <button class="advice" id="mainAdvice"></button>
 
-  <div class="sectionTitle">ثبت سریع</div>
-  <section class="quickGrid">
+      <div class="sectionTitle">ثبت سریع</div>
+      <section class="quickGrid">
     <button data-quick="GOLD"><b>▰</b><span>طلای آبشده</span><small>آبشده / متفرقه</small></button>
     <button data-quick="COIN"><b>●</b><span>سکه</span><small>تمام / نیم / ربع</small></button>
     <button data-quick="USD"><b>$</b><span>دلار</span><small>USD</small></button>
     <button data-quick="AED"><b>د</b><span>درهم</span><small>AED</small></button>
     <button data-quick="EUR"><b>€</b><span>یورو</span><small>EUR</small></button>
     <button data-quick="CUSTOM"><b>＋</b><span>ارز جدید</span><small>افزودن / ثبت</small></button>
-  </section>
+      </section>
+    </div>
 
-  <div class="sectionTitle">خلاصه امروز</div>
-  <section class="panel" id="todaySummary"></section>
+    <aside class="tabletSide">
+      <div class="sectionTitle sideTitle">وضعیت لحظه‌ای</div>
+      <section class="panel sidePanel">
+        <div class="sideRow"><span>طلای وزنی</span><strong id="sideRawGold">0</strong></div>
+        <div class="sideRow"><span>تمام سکه</span><strong id="sideFullCoin">بالانس</strong></div>
+        <div class="sideRow"><span>نیم سکه</span><strong id="sideHalfCoin">بالانس</strong></div>
+        <div class="sideRow"><span>ربع سکه</span><strong id="sideQuarterCoin">بالانس</strong></div>
+        <div class="sideRow"><span>بالانس ارزی</span><strong id="sideFx">0 $</strong></div>
+      </section>
+
+      <div class="sectionTitle sideTitle">خلاصه امروز</div>
+      <section class="panel sidePanel" id="todaySummary"></section>
+
+      <div class="sectionTitle sideTitle">آخرین معاملات</div>
+      <section class="panel recentMini" id="recentMini"></section>
+    </aside>
+  </section>
 </template>
 
 <template id="entryTpl">
@@ -89,37 +107,41 @@
   </section>
 
   <section class="stepField panel">
-    <button id="minusBtn" class="minus">−</button>
-    <div>
+    <button id="plusBtn" class="plus" aria-label="افزایش">+</button>
+    <div class="qtyCenter">
       <label id="qtyLabel">وزن / تعداد / مقدار</label>
-      <input id="qty" inputmode="decimal" autocomplete="off"/>
+      <input id="qty" inputmode="decimal" autocomplete="off" placeholder="0"/>
     </div>
-    <button id="plusBtn" class="plus">+</button>
+    <button id="minusBtn" class="minus" aria-label="کاهش">−</button>
   </section>
 
   <div id="chips" class="chips"></div>
 
-  <label class="field panel">
-    <span>مبلغ کل (تومان) — اختیاری</span>
-    <input id="total" inputmode="numeric" autocomplete="off"/>
-  </label>
+  <section class="tabletFormGrid">
+    <label class="field panel">
+      <span>مبلغ کل (تومان) — اختیاری</span>
+      <input id="total" inputmode="numeric" autocomplete="off"/>
+    </label>
 
-  <label class="field panel">
-    <span>نرخ واحد (تومان) — اختیاری</span>
-    <input id="unitRate" inputmode="numeric" autocomplete="off"/>
-  </label>
+    <label class="field panel">
+      <span>نرخ واحد (تومان) — اختیاری</span>
+      <input id="unitRate" inputmode="numeric" autocomplete="off"/>
+    </label>
+  </section>
 
   <div id="autoWeight" class="autoWeight hidden"></div>
 
-  <label class="field panel">
-    <span>طرف حساب — اختیاری</span>
-    <input id="party" autocomplete="off"/>
-  </label>
+  <section class="tabletFormGrid">
+    <label class="field panel">
+      <span>طرف حساب — اختیاری</span>
+      <input id="party" autocomplete="off"/>
+    </label>
 
-  <label class="field panel">
-    <span>توضیحات — اختیاری</span>
-    <textarea id="note" rows="4"></textarea>
-  </label>
+    <label class="field panel noteField">
+      <span>توضیحات — اختیاری</span>
+      <textarea id="note" rows="4"></textarea>
+    </label>
+  </section>
 
   <div class="entrySpacer"></div>
   <button id="saveTrade" class="stickySave">ثبت خرید</button>

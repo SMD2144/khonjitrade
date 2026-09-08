@@ -18,6 +18,15 @@ function load(){
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function fmt(x,d=3){return new Intl.NumberFormat('fa-IR',{maximumFractionDigits:d}).format(Math.abs(x))}
 function signed(x){return (x>0?'+':x<0?'−':'')+fmt(x)}
+function coinActionMini(v,name){
+  if(Math.abs(v)<1e-9)return 'بالانس';
+  return `${fmt(v)} ${name} ${v>0?'بفروش':'بخر'}`;
+}
+function formatMoneyInput(el){
+  const raw=el.value.replace(/[^0-9]/g,'');
+  if(!raw){el.value='';return}
+  el.value=Number(raw).toLocaleString('en-US');
+}
 function todayStart(){const d=new Date();d.setHours(0,0,0,0);return d.getTime()}
 function isToday(t){return t.ts>=todayStart()}
 function sign(t){return t.side==='BUY'?1:-1}
@@ -77,6 +86,21 @@ function renderDashboard(){
   mainAdvice.textContent=bal>0?`برای بالانس ${fmt(bal)} گرم بفروش`:bal<0?`برای بالانس ${fmt(bal)} گرم بخر`:'بالانس طلا صفر است';
   const unnamed=today.filter(t=>!t.party).length;
   todaySummary.innerHTML=`تعداد معاملات امروز: <b>${fmt(today.length,0)}</b><br>ثبت‌های بدون طرف حساب: <b>${fmt(unnamed,0)}</b><br>طلای وزنی: <b>${signed(rawGold())} گرم</b>`;
+
+  const rg=rawGold(),fc=coinBal('تمام سکه'),hc=coinBal('نیم سکه'),qc=coinBal('ربع سکه'),fxb=usdBalance();
+  sideRawGold.textContent = Math.abs(rg)<1e-9 ? 'بالانس' : `${fmt(rg)} گرم ${rg>0?'بفروش':'بخر'}`;
+  sideFullCoin.textContent = coinActionMini(fc,'تمام');
+  sideHalfCoin.textContent = coinActionMini(hc,'نیم');
+  sideQuarterCoin.textContent = coinActionMini(qc,'ربع');
+  sideFx.textContent = Math.abs(fxb)<1e-9 ? 'بالانس' : `${fmt(fxb)} دلار ${fxb>0?'بفروش':'بخر'}`;
+
+  const recent=[...today].sort((a,b)=>b.ts-a.ts).slice(0,4);
+  recentMini.innerHTML = recent.length ? recent.map(t=>`
+    <div class="recentMiniItem">
+      <div><b>${t.side==='BUY'?'خرید':'فروش'} ${t.asset}</b><br><small>${t.party||'بدون طرف حساب'}</small></div>
+      <strong>${fmt(t.qty)}</strong>
+    </div>`).join('') : '<span style="color:var(--muted)">امروز معامله‌ای ثبت نشده</span>';
+
   document.querySelectorAll('[data-quick]').forEach(b=>b.onclick=()=>{entryType=b.dataset.quick;show('entry')});
   document.querySelector('[data-action="open-buy"]').onclick=()=>{ledgerFilter='BUY';show('ledger')};
   document.querySelector('[data-action="open-sell"]').onclick=()=>{ledgerFilter='SELL';show('ledger')};
@@ -142,7 +166,24 @@ function renderEntry(){
   }));
 
   [qty,total,unitRate,party,note].forEach(el=>{
-    el.addEventListener('focus',()=>setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'center'}),300));
+    const reveal=()=>{
+      const run=()=>{
+        if(document.activeElement!==el)return;
+        const saveRect=saveTrade.getBoundingClientRect();
+        const r=el.closest('.panel')?.getBoundingClientRect()||el.getBoundingClientRect();
+        const safeBottom=Math.min(window.innerHeight,saveRect.top)-18;
+        const safeTop=88;
+        if(r.bottom>safeBottom) window.scrollBy({top:r.bottom-safeBottom+18,behavior:'smooth'});
+        else if(r.top<safeTop) window.scrollBy({top:r.top-safeTop-16,behavior:'smooth'});
+      };
+      setTimeout(run,80);setTimeout(run,240);setTimeout(run,480);
+    };
+    el.addEventListener('focus',reveal);
+    el.addEventListener('click',reveal);
+  });
+
+  [total,unitRate].forEach(el=>{
+    el.addEventListener('blur',()=>formatMoneyInput(el));
   });
 
   if(editId){
@@ -158,14 +199,14 @@ function renderEntry(){
     const asset=type==='COIN'?selectedCoin:selectedAsset;
     let q=Number(qty.value||0),auto=false;
     if(!q&&type==='GOLD'){
-      const t=Number(total.value||0),r=Number(unitRate.value||0);
+      const t=Number(total.value.replaceAll(',','')||0),r=Number(unitRate.value.replaceAll(',','')||0);
       if(t>0&&r>0){q=t/r;auto=true}
     }
     if(!(q>0)){alert('وزن / تعداد / مقدار را وارد کن');return}
     const trade={
       id:editId||Date.now(),
       side:entryBuy?'BUY':'SELL',
-      asset,qty:q,total:Number(total.value||0),rate:Number(unitRate.value||0),
+      asset,qty:q,total:Number(total.value.replaceAll(',','')||0),rate:Number(unitRate.value.replaceAll(',','')||0),
       party:party.value.trim(),note:note.value.trim(),coinType:normalCoin.checked?'NORMAL':'BANK',autoQty:auto,ts:editId?(state.trades.find(x=>x.id===editId)?.ts||Date.now()):Date.now()
     };
     if(editId) state.trades=state.trades.map(x=>x.id===editId?trade:x); else state.trades.unshift(trade);
