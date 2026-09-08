@@ -707,3 +707,56 @@ body.dark .stepField input{
 }
 .pickerWarning.ok{color:var(--green)}
 .coverageHint{line-height:1.7;font-size:12px}
+
+
+/* ===== v1.5.0 Robust Cover Engine ===== */
+.targetPickerBox{
+  margin:0 0 12px;
+  padding:14px;
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:var(--surface2);
+}
+.targetPickerBox > span{
+  display:block;
+  color:var(--muted);
+  margin-bottom:10px;
+}
+.targetPickerBox > small{
+  display:block;
+  color:var(--gold);
+  margin-top:9px;
+}
+.targetStepper{
+  direction:ltr;
+  display:grid;
+  grid-template-columns:54px minmax(90px,1fr) 54px;
+  gap:8px;
+}
+.targetStepper button{
+  height:50px;
+  border:0;
+  border-radius:14px;
+  background:var(--surface);
+  color:var(--text);
+  font-size:25px;
+  font-weight:900;
+  border:1px solid var(--line);
+}
+.targetStepper button[data-target-op="plus"]{
+  background:var(--green);
+  color:#fff;
+}
+.targetStepper button[data-target-op="minus"]{color:var(--red)}
+#targetQtyInput{
+  min-width:0;
+  height:50px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  color:var(--text);
+  text-align:center;
+  font-size:20px;
+  font-weight:900;
+  outline:none;
+}
