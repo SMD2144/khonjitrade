@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.2.1-ui-cleanup';
+const CACHE='khonji-pwa-v1.2.2-portrait-fix';
 const CORE=[
   './',
   './index.html?v=112',

@@ -386,3 +386,130 @@ body.dark .stepField input{
     line-height:1.5;
   }
 }
+
+
+/* ===== v1.2.2 Portrait Tablet Layout Fix ===== */
+/* Portrait tablet must NOT use the desktop two-column dashboard. */
+@media (min-width:768px) and (orientation:portrait) {
+  #app{
+    max-width:900px;
+  }
+
+  #view{
+    padding:0 22px 34px;
+  }
+
+  .tabletDashboard{
+    display:block !important;
+  }
+
+  .tabletMain,
+  .tabletSide{
+    width:100%;
+    min-width:0;
+  }
+
+  .tabletSide{
+    position:static !important;
+    top:auto !important;
+    margin-top:18px;
+  }
+
+  /* Keep the three top cards readable in portrait. */
+  .cards3{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:10px;
+  }
+
+  .metric{
+    min-height:156px;
+    padding:16px 8px;
+    border-radius:21px;
+  }
+
+  .metric span{
+    font-size:15px;
+    line-height:1.5;
+  }
+
+  .metric strong{
+    font-size:28px;
+    margin:14px 0 4px;
+    white-space:nowrap;
+  }
+
+  .metric small{
+    font-size:12px;
+  }
+
+  .advice{
+    margin:14px 0 18px;
+    min-height:66px;
+    font-size:19px;
+  }
+
+  /* Quick entry: 3x2 in portrait, not 6 squeezed columns. */
+  .quickGrid{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:10px;
+  }
+
+  .quickGrid button{
+    min-height:132px;
+  }
+
+  /* Side information becomes a full-width clean section below quick entry. */
+  .sideTitle{
+    margin-top:18px;
+  }
+
+  .sidePanel{
+    width:100%;
+    margin-bottom:14px;
+    padding:14px 18px;
+  }
+
+  .sideRow{
+    min-height:50px;
+  }
+
+  .settlementRow{
+    grid-template-columns:minmax(0,1fr) auto !important;
+    grid-template-areas:
+      "label value"
+      "action action" !important;
+  }
+
+  .sidePanel .settlementRow > strong{
+    max-width:none !important;
+    font-size:15px;
+    text-align:left;
+  }
+
+  .settleBtn{
+    width:100% !important;
+    min-width:0 !important;
+    font-size:13px;
+    padding:10px 12px;
+  }
+
+  .recentMini{
+    width:100%;
+  }
+
+  /* Bottom navigation stays clear and doesn't cover content. */
+  .bottomNav button{
+    font-size:14px;
+  }
+
+  .bottomNav .primaryNav{
+    min-width:130px;
+  }
+}
+
+/* Narrower portrait iPads: slightly smaller top-card typography. */
+@media (min-width:768px) and (max-width:850px) and (orientation:portrait) {
+  .metric strong{font-size:25px}
+  .metric span{font-size:14px}
+  .quickGrid span{font-size:17px}
+}
