@@ -21,7 +21,7 @@ function fmt(x,d=3){return new Intl.NumberFormat('fa-IR',{maximumFractionDigits:
 function signed(x){return (x>0?'+':x<0?'−':'')+fmt(x)}
 function coinActionMini(v,name){
   if(Math.abs(v)<1e-9)return 'بالانس';
-  return `${fmt(v)} ${name} ${v>0?'بفروش':'بخر'}`;
+  return `${fmt(v)} ${name} • ${v>0?'بفروش':'بخر'}`;
 }
 function formatMoneyInput(el){
   const raw=el.value.replace(/[^0-9]/g,'');
@@ -163,7 +163,7 @@ function renderDashboard(){
   document.getElementById('todaySummary').innerHTML=`تعداد معاملات امروز: <b>${fmt(today.length,0)}</b><br>ثبت‌های بدون طرف حساب: <b>${fmt(unnamed,0)}</b><br>طلای وزنی: <b>${signed(rawGold())} گرم</b>`;
 
   const rg=rawGold(),fc=coinBal('تمام سکه'),hc=coinBal('نیم سکه'),qc=coinBal('ربع سکه'),fxb=usdBalance();
-  document.getElementById('sideRawGold').textContent = Math.abs(rg)<1e-9 ? 'بالانس' : `${fmt(rg)} گرم ${rg>0?'بفروش':'بخر'}`;
+  document.getElementById('sideRawGold').textContent = Math.abs(rg)<1e-9 ? 'بالانس' : `${fmt(rg)} گرم • ${rg>0?'بفروش':'بخر'}`;
   document.getElementById('sideFullCoin').textContent = coinActionMini(fc,'تمام');
   document.getElementById('sideHalfCoin').textContent = coinActionMini(hc,'نیم');
   document.getElementById('sideQuarterCoin').textContent = coinActionMini(qc,'ربع');
@@ -192,7 +192,7 @@ function renderDashboard(){
         const coverGold=coinEq18(c.name,coverQty);
         if(coverQty>0.000001){
           const wrap=document.getElementById(c.actionId);
-          wrap.innerHTML=`<button class="settleBtn">از طلا پوشش بده</button>`;
+          wrap.innerHTML=`<button class="settleBtn">از ${fmt(coverGold)} گرم طلا پوشش بده</button>`;
           wrap.querySelector('button').onclick=()=>{
             const q=coverQty,g=coverGold;
             const msg=`${fmt(q)} ${c.name} با ${fmt(g)} گرم طلا پوشش داده شود؟`;
@@ -216,7 +216,7 @@ function renderDashboard(){
         const coverQty=Math.min(c.bal,coinQtyFor18(c.name,coverGold));
         if(coverQty>0.000001){
           const wrap=document.getElementById('actRawGold');
-          wrap.innerHTML=`<button class="settleBtn">از سکه پوشش بده</button>`;
+          wrap.innerHTML=`<button class="settleBtn">از ${fmt(coverQty)} ${c.name} پوشش بده</button>`;
           wrap.querySelector('button').onclick=()=>{
             const q=coverQty,g=coinEq18(c.name,q);
             const msg=`${fmt(g)} گرم طلا با ${fmt(q)} ${c.name} پوشش داده شود؟`;

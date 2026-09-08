@@ -339,3 +339,50 @@ body.dark .stepField input{
 }
 .settlementCard small{display:block;margin-top:9px;color:var(--muted)}
 .mutedBox{color:var(--muted)}
+
+
+/* ===== v1.2.1 Tablet Balance UI Cleanup ===== */
+@media (min-width:768px){
+  .cards3{
+    grid-template-columns:1.08fr 1fr 1fr;
+  }
+  .metric.gold{
+    min-width:0;
+  }
+  .metric strong{
+    line-height:1.1;
+    word-break:keep-all;
+  }
+
+  .settlementRow{
+    grid-template-columns:1fr auto;
+    grid-template-areas:
+      "label value"
+      "action action";
+    align-items:center;
+  }
+
+  .settlementRow > div{
+    margin-top:2px;
+  }
+
+  .settleBtn{
+    width:auto;
+    min-width:180px;
+    justify-self:stretch;
+    padding:10px 14px;
+    font-size:13px;
+    border-radius:13px;
+    text-align:center;
+  }
+
+  .sidePanel .settlementRow{
+    padding:10px 0 12px;
+  }
+
+  .sidePanel .settlementRow > strong{
+    font-size:15px;
+    max-width:170px;
+    line-height:1.5;
+  }
+}
