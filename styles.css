@@ -1461,3 +1461,25 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
     grid-template-columns:1fr;
   }
 }
+
+
+/* ===== v1.6.5 HARD PORTRAIT DASHBOARD GUARANTEE ===== */
+.dashboardTopV164{
+  display:grid !important;
+}
+@media (min-width:700px) and (orientation:portrait){
+  .dashboardTopV164{
+    grid-template-columns:minmax(0,44fr) minmax(0,56fr) !important;
+    gap:12px !important;
+  }
+  .dashboardStatusColV164{
+    grid-column:1 !important;
+    grid-row:1 !important;
+    order:0 !important;
+  }
+  .dashboardStatsColV164{
+    grid-column:2 !important;
+    grid-row:1 !important;
+    order:0 !important;
+  }
+}

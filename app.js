@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.6.4';
+const BUILD_VERSION='1.6.5';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -470,7 +470,79 @@ function cloneTpl(id){return document.getElementById(id).content.cloneNode(true)
 function setView(node){const v=document.getElementById('view');v.innerHTML='';v.append(node);window.scrollTo({top:0,behavior:'instant'})}
 
 
-function applyDashboardPriorityLayout(){}
+function applyDashboardPriorityLayout(){
+  const dash=document.querySelector('.dashboardV164');
+  const top=dash?.querySelector('.dashboardTopV164');
+  const status=dash?.querySelector('.dashboardStatusColV164');
+  const stats=dash?.querySelector('.dashboardStatsColV164');
+  const quick=dash?.querySelector('.quickSectionV164');
+
+  if(!dash || !top || !status || !stats || !quick)return;
+
+  // HARD DOM GUARANTEE:
+  // live status and KPI stats always live inside the top block,
+  // and the quick-entry section always comes immediately after it.
+  if(status.parentElement!==top)top.appendChild(status);
+  if(stats.parentElement!==top)top.appendChild(stats);
+
+  // Force exact visual order independent of older cached CSS.
+  top.insertBefore(status, top.firstChild);
+  top.appendChild(stats);
+
+  if(top.nextElementSibling!==quick){
+    dash.insertBefore(quick, top.nextSibling);
+  }
+
+  const w=window.innerWidth;
+  const h=window.innerHeight;
+  const portrait=h>=w;
+
+  top.style.setProperty('display','grid','important');
+  top.style.setProperty('direction','ltr','important');
+  top.style.setProperty('align-items','start','important');
+  top.style.setProperty('width','100%','important');
+  top.style.setProperty('min-width','0','important');
+
+  // iPad portrait: left status panel, right KPI block.
+  if(portrait && w>=700){
+    top.style.setProperty('grid-template-columns','minmax(0,0.44fr) minmax(0,0.56fr)','important');
+    top.style.setProperty('gap','12px','important');
+  }else if(w>=700){
+    top.style.setProperty('grid-template-columns','minmax(300px,0.42fr) minmax(0,0.58fr)','important');
+    top.style.setProperty('gap','16px','important');
+  }else{
+    top.style.setProperty('grid-template-columns','1fr','important');
+    top.style.setProperty('gap','12px','important');
+  }
+
+  status.style.setProperty('grid-column','1','important');
+  status.style.setProperty('grid-row','1','important');
+  status.style.setProperty('direction','rtl','important');
+  status.style.setProperty('min-width','0','important');
+  status.style.setProperty('order','0','important');
+
+  stats.style.setProperty('grid-column',w>=700?'2':'1','important');
+  stats.style.setProperty('grid-row',w>=700?'1':'2','important');
+  stats.style.setProperty('direction','rtl','important');
+  stats.style.setProperty('min-width','0','important');
+  stats.style.setProperty('order','0','important');
+
+  quick.style.setProperty('display','block','important');
+  quick.style.setProperty('width','100%','important');
+  quick.style.setProperty('margin-top','18px','important');
+
+  const grid=stats.querySelector('.statsGridV164');
+  if(grid){
+    grid.style.setProperty('display','grid','important');
+    grid.style.setProperty('grid-template-columns','repeat(2,minmax(0,1fr))','important');
+    grid.style.setProperty('gap','10px','important');
+  }
+
+  const balance=stats.querySelector('.balanceWideV164');
+  if(balance){
+    balance.style.setProperty('grid-column','1 / -1','important');
+  }
+}
 
 function renderDashboard(){
   setView(cloneTpl('dashboardTpl'));
@@ -1307,3 +1379,9 @@ if(customKeypadView)customKeypadObserver.observe(customKeypadView,{childList:tru
 const goldLinkedObserver=new MutationObserver(()=>installGoldLinkedFields());
 const goldLinkedView=document.getElementById('view');
 if(goldLinkedView)goldLinkedObserver.observe(goldLinkedView,{childList:true,subtree:true});
+
+window.addEventListener('resize',()=>requestAnimationFrame(applyDashboardPriorityLayout));
+window.addEventListener('orientationchange',()=>{
+  setTimeout(applyDashboardPriorityLayout,80);
+  setTimeout(applyDashboardPriorityLayout,350);
+});

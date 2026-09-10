@@ -1,9 +1,9 @@
-const CACHE='khonji-pwa-v1.6.4-real-dashboard';
+const CACHE='khonji-pwa-v1.6.5-hard-layout';
 const CORE=[
   './',
-  './index.html?v=112',
-  './styles.css?v=112',
-  './app.js?v=112',
+  './index.html?v=165',
+  './styles.css?v=165',
+  './app.js?v=165',
   './manifest.json',
   './icon-192.svg',
   './icon-512.svg'
