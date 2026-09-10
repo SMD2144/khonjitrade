@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
-  <link rel="manifest" href="manifest.json?v=177"/>
+  <link rel="manifest" href="manifest.json?v=180"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
-  <link rel="stylesheet" href="styles.css?v=177"/>
+  <link rel="stylesheet" href="styles.css?v=180"/>
   <title>دفتر معاملات طلا</title>
 
 <style id="dashboardCritical165">
@@ -156,7 +156,7 @@
       <p>ثبت سریع، دفتر روزانه و بالانس</p>
     </div>
     <button id="themeBtn" class="iconBtn">◐</button>
-  <div id="appVersionBadge" class="versionBadge">v1.7.7</div></header>
+  <div id="appVersionBadge" class="versionBadge">v1.8.0</div></header>
 
   <main id="view"></main>
 
@@ -343,6 +343,51 @@
     <div id="currencyList" class="tagList"></div>
   </section>
 
+
+  <section class="panel syncPanelV180">
+    <div class="syncPanelHeadV180">
+      <div>
+        <h3>همگام‌سازی سرور</h3>
+        <p>دیتای اصلی روی VPS ذخیره می‌شود و این دستگاه نسخه آفلاین را نگه می‌دارد.</p>
+      </div>
+      <span id="syncStatusDotV180" class="syncDotV180 off"></span>
+    </div>
+
+    <div class="syncFieldsV180">
+      <label>آدرس API
+        <input id="syncApiUrlV180" type="url" inputmode="url" dir="ltr"
+               autocomplete="off" placeholder="https://trade-api.example.com">
+      </label>
+      <label>توکن دسترسی
+        <input id="syncTokenV180" type="password" inputmode="text" dir="ltr"
+               autocomplete="new-password" placeholder="API Token">
+      </label>
+    </div>
+
+    <div class="syncStatusBoxV180" id="syncStatusTextV180">همگام‌سازی غیرفعال است.</div>
+
+    <div class="twoBtns">
+      <button id="syncSaveConfigV180">ذخیره اتصال</button>
+      <button id="syncTestV180" class="secondaryBtn">تست اتصال</button>
+    </div>
+
+    <div class="syncActionGridV180">
+      <button id="syncBootstrapV180" class="syncPrimaryV180">راه‌اندازی سرور با اطلاعات همین دستگاه</button>
+      <button id="syncPullV180">دریافت اطلاعات سرور روی این دستگاه</button>
+      <button id="syncNowV180">همگام‌سازی دوطرفه الآن</button>
+    </div>
+
+    <label class="syncToggleV180">
+      <input id="syncEnabledV180" type="checkbox">
+      <span>همگام‌سازی خودکار فعال باشد</span>
+    </label>
+
+    <p class="syncWarningV180">
+      دستگاه اول: یک‌بار «راه‌اندازی سرور با اطلاعات همین دستگاه». دستگاه‌های بعدی:
+      ابتدا «دریافت اطلاعات سرور روی این دستگاه» تا دیتای قدیمی با سرور قاطی نشود.
+    </p>
+  </section>
+
   <section class="panel">
     <h3>بکاپ اطلاعات</h3>
     <p>بکاپ شامل تمام معاملات، ارزهای سفارشی و ضرایب تبدیل است.</p>
@@ -358,7 +403,7 @@
   </section>
 </template>
 
-<script src="app.js?v=177"></script>
+<script src="app.js?v=180"></script>
 
 <div id="fxBalanceModal" class="fxModal hidden" aria-hidden="true">
   <div class="fxModalBackdrop" data-fx-close="1"></div>

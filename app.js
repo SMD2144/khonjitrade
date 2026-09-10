@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.7.7';
+const BUILD_VERSION='1.8.0';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -19,7 +19,267 @@ function load(){
     return {...structuredClone(DEFAULT),...(x||{}),fx:{...DEFAULT.fx,...((x||{}).fx||{})}};
   }catch{return structuredClone(DEFAULT)}
 }
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function save(options={}){
+  const {skipSync=false,skipTrack=false}=options||{};
+  const now=Date.now();
+
+  let previous=null;
+  try{previous=JSON.parse(localStorage.getItem(KEY)||'null')}catch(_){}
+
+  if(!skipTrack){
+    const oldTrades=Array.isArray(previous?.trades)?previous.trades:[];
+    const oldById=new Map(oldTrades.map(t=>[String(t.id),t]));
+    const currentIds=new Set((state.trades||[]).map(t=>String(t.id)));
+
+    for(const old of oldTrades){
+      const id=String(old.id);
+      if(!currentIds.has(id))syncRememberDeletionV180(id,now);
+    }
+
+    state.trades=(state.trades||[]).map(t=>{
+      if(Number.isFinite(Number(t._updatedAt)) && Number(t._updatedAt)>0)return t;
+      const old=oldById.get(String(t.id));
+      if(old && JSON.stringify({...old,_updatedAt:undefined})===JSON.stringify({...t,_updatedAt:undefined})){
+        return {...t,_updatedAt:Number(old._updatedAt||old.ts||old.id||now)};
+      }
+      return {...t,_updatedAt:now};
+    });
+
+    const oldSettings=JSON.stringify({currencies:previous?.currencies||[],fx:previous?.fx||{}});
+    const newSettings=JSON.stringify({currencies:state.currencies||[],fx:state.fx||{}});
+    if(oldSettings!==newSettings)syncMarkSettingsChangedV180(now);
+  }
+
+  localStorage.setItem(KEY,JSON.stringify(state));
+  if(!skipSync)scheduleServerSyncV180();
+}
+
+
+const SYNC_CFG_KEY_V180='khonji_sync_config_v1';
+const SYNC_META_KEY_V180='khonji_sync_meta_v1';
+let syncTimerV180=null;
+let syncRunningV180=false;
+let syncApplyingV180=false;
+let syncPollV180=null;
+
+function syncLoadCfgV180(){
+  try{
+    return {apiUrl:'',token:'',enabled:false,deviceId:'',...JSON.parse(localStorage.getItem(SYNC_CFG_KEY_V180)||'{}')};
+  }catch(_){
+    return {apiUrl:'',token:'',enabled:false,deviceId:''};
+  }
+}
+function syncStoreCfgV180(cfg){localStorage.setItem(SYNC_CFG_KEY_V180,JSON.stringify(cfg))}
+
+function syncLoadMetaV180(){
+  try{
+    return {
+      tombstones:{},settingsUpdatedAt:0,lastSyncAt:0,lastRevision:0,lastError:'',
+      ...JSON.parse(localStorage.getItem(SYNC_META_KEY_V180)||'{}')
+    };
+  }catch(_){
+    return {tombstones:{},settingsUpdatedAt:0,lastSyncAt:0,lastRevision:0,lastError:''};
+  }
+}
+function syncStoreMetaV180(meta){localStorage.setItem(SYNC_META_KEY_V180,JSON.stringify(meta))}
+
+function syncDeviceIdV180(){
+  const cfg=syncLoadCfgV180();
+  if(!cfg.deviceId){
+    cfg.deviceId='DEV-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+    syncStoreCfgV180(cfg);
+  }
+  return cfg.deviceId;
+}
+
+function syncRememberDeletionV180(id,ts=Date.now()){
+  const meta=syncLoadMetaV180();
+  meta.tombstones=meta.tombstones||{};
+  meta.tombstones[String(id)]=Math.max(Number(meta.tombstones[String(id)]||0),Number(ts)||Date.now());
+  syncStoreMetaV180(meta);
+}
+function syncMarkSettingsChangedV180(ts=Date.now()){
+  const meta=syncLoadMetaV180();
+  meta.settingsUpdatedAt=Math.max(Number(meta.settingsUpdatedAt||0),Number(ts)||Date.now());
+  syncStoreMetaV180(meta);
+}
+function syncNormalizeApiV180(url){return String(url||'').trim().replace(/\/+$/,'')}
+
+function syncHeadersV180(){
+  const cfg=syncLoadCfgV180();
+  return {'Content-Type':'application/json','Authorization':'Bearer '+cfg.token};
+}
+
+async function syncFetchV180(path,options={}){
+  const cfg=syncLoadCfgV180();
+  const base=syncNormalizeApiV180(cfg.apiUrl);
+  if(!base)throw new Error('آدرس API وارد نشده');
+  if(!cfg.token)throw new Error('توکن دسترسی وارد نشده');
+
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),12000);
+  try{
+    const res=await fetch(base+path,{
+      ...options,
+      headers:{...syncHeadersV180(),...(options.headers||{})},
+      cache:'no-store',
+      signal:controller.signal
+    });
+    let body=null;
+    try{body=await res.json()}catch(_){}
+    if(!res.ok)throw new Error(body?.detail||body?.message||('خطای سرور '+res.status));
+    return body;
+  }catch(err){
+    if(err?.name==='AbortError')throw new Error('پاسخ سرور بیش از حد طول کشید');
+    throw err;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+function syncSnapshotV180(){
+  const meta=syncLoadMetaV180();
+  return {
+    device_id:syncDeviceIdV180(),
+    base_revision:Number(meta.lastRevision||0),
+    trades:(state.trades||[]).map(t=>({
+      ...t,id:String(t.id),_updatedAt:Number(t._updatedAt||t.ts||t.id||Date.now())
+    })),
+    tombstones:Object.entries(meta.tombstones||{}).map(([id,deleted_at])=>({
+      id:String(id),deleted_at:Number(deleted_at)||Date.now()
+    })),
+    settings:{
+      currencies:[...(state.currencies||[])],
+      fx:{...(state.fx||{})},
+      updated_at:Number(meta.settingsUpdatedAt||0)
+    }
+  };
+}
+
+function syncApplyServerStateV180(payload){
+  if(!payload)return;
+  syncApplyingV180=true;
+  try{
+    const localTheme=state.theme||'dark';
+    state={
+      ...structuredClone(DEFAULT),
+      ...state,
+      trades:(payload.trades||[]).map(t=>({...t,id:isNaN(Number(t.id))?t.id:Number(t.id)})),
+      currencies:[...(payload.settings?.currencies||[])],
+      fx:{...DEFAULT.fx,...(payload.settings?.fx||{})},
+      theme:localTheme
+    };
+    save({skipSync:true,skipTrack:true});
+
+    const meta=syncLoadMetaV180();
+    meta.lastRevision=Number(payload.revision||0);
+    meta.lastSyncAt=Date.now();
+    meta.lastError='';
+    meta.tombstones={};
+    if(payload.settings?.updated_at)meta.settingsUpdatedAt=Number(payload.settings.updated_at);
+    syncStoreMetaV180(meta);
+  }finally{
+    syncApplyingV180=false;
+  }
+}
+
+function syncStatusLabelV180(kind,text){
+  const box=document.getElementById('syncStatusTextV180');
+  const dot=document.getElementById('syncStatusDotV180');
+  if(box)box.textContent=text;
+  if(dot)dot.className='syncDotV180 '+kind;
+}
+function syncUpdateStatusUiV180(){
+  const cfg=syncLoadCfgV180(),meta=syncLoadMetaV180();
+  if(!cfg.enabled)return syncStatusLabelV180('off','همگام‌سازی خودکار غیرفعال است.');
+  if(meta.lastError)return syncStatusLabelV180('error','خطا: '+meta.lastError);
+  if(meta.lastSyncAt){
+    const t=new Date(meta.lastSyncAt).toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
+    return syncStatusLabelV180('ok',`متصل • آخرین همگام‌سازی ${t} • نسخه سرور ${meta.lastRevision||0}`);
+  }
+  syncStatusLabelV180('wait','اتصال ذخیره شده؛ هنوز همگام‌سازی انجام نشده.');
+}
+
+async function syncTestConnectionV180(){
+  syncStatusLabelV180('wait','در حال تست اتصال...');
+  const data=await syncFetchV180('/api/v1/status',{method:'GET'});
+  syncStatusLabelV180('ok',`اتصال موفق • ${data.trade_count||0} معامله روی سرور • نسخه ${data.revision||0}`);
+  return data;
+}
+
+async function syncBootstrapV180(){
+  if(syncRunningV180)return;
+  const status=await syncTestConnectionV180();
+  if(Number(status.trade_count||0)>0 || Number(status.revision||0)>0){
+    throw new Error('سرور خالی نیست؛ برای جلوگیری از قاطی‌شدن داده‌ها Bootstrap متوقف شد.');
+  }
+  if(!confirm(`اطلاعات همین دستگاه مبنای اولیه سرور شود؟\n\n${(state.trades||[]).length} رکورد ارسال می‌شود.\nاین کار فقط روی دستگاه اول انجام شود.`))return;
+
+  syncRunningV180=true;
+  try{
+    syncStatusLabelV180('wait','در حال انتقال اطلاعات اولیه...');
+    const data=await syncFetchV180('/api/v1/bootstrap',{method:'POST',body:JSON.stringify(syncSnapshotV180())});
+    syncApplyServerStateV180(data);
+    syncStatusLabelV180('ok',`راه‌اندازی انجام شد • ${data.trades?.length||0} رکورد`);
+  }finally{syncRunningV180=false}
+}
+
+async function syncPullReplaceV180(){
+  if(syncRunningV180)return;
+  if(!confirm('اطلاعات این دستگاه با نسخه سرور جایگزین شود؟\n\nبرای دستگاه دوم مناسب است. اگر دیتای محلی مهم داری اول خروجی JSON بگیر.'))return;
+  if(!confirm('تأیید نهایی\n\nنسخه سرور جای معاملات محلی این دستگاه می‌آید. ادامه؟'))return;
+
+  syncRunningV180=true;
+  try{
+    syncStatusLabelV180('wait','در حال دریافت اطلاعات سرور...');
+    const data=await syncFetchV180('/api/v1/pull',{method:'GET'});
+    syncApplyServerStateV180(data);
+    syncStatusLabelV180('ok',`اطلاعات دریافت شد • ${data.trades?.length||0} رکورد`);
+    if(currentView==='dashboard')renderDashboard();
+  }finally{syncRunningV180=false}
+}
+
+async function syncNowV180({silent=false}={}){
+  const cfg=syncLoadCfgV180();
+  if(!cfg.enabled && silent)return;
+  if(syncRunningV180||syncApplyingV180)return;
+
+  syncRunningV180=true;
+  try{
+    if(!silent)syncStatusLabelV180('wait','در حال همگام‌سازی دوطرفه...');
+    const data=await syncFetchV180('/api/v1/sync',{method:'POST',body:JSON.stringify(syncSnapshotV180())});
+    syncApplyServerStateV180(data);
+    if(currentView==='dashboard')renderDashboard();
+    else if(currentView==='ledger')renderLedger();
+    else if(currentView==='report')renderReport();
+    else if(currentView==='settings')syncUpdateStatusUiV180();
+  }catch(err){
+    const meta=syncLoadMetaV180();
+    meta.lastError=String(err?.message||err);
+    syncStoreMetaV180(meta);
+    if(!silent){
+      syncStatusLabelV180('error','خطا: '+meta.lastError);
+      alert('همگام‌سازی انجام نشد:\n'+meta.lastError);
+    }
+  }finally{syncRunningV180=false}
+}
+function scheduleServerSyncV180(){
+  if(syncApplyingV180)return;
+  const cfg=syncLoadCfgV180();
+  if(!cfg.enabled||!cfg.apiUrl||!cfg.token)return;
+  clearTimeout(syncTimerV180);
+  syncTimerV180=setTimeout(()=>syncNowV180({silent:true}),900);
+}
+function startSyncPollingV180(){
+  if(syncPollV180)clearInterval(syncPollV180);
+  syncPollV180=setInterval(()=>{
+    if(document.visibilityState==='visible'&&navigator.onLine)syncNowV180({silent:true});
+  },15000);
+}
+window.addEventListener('online',scheduleServerSyncV180);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleServerSyncV180()});
+startSyncPollingV180();
+
 function fmt(x,d=3){return new Intl.NumberFormat('fa-IR',{maximumFractionDigits:d}).format(Math.abs(x))}
 function signed(x){return (x>0?'+':x<0?'−':'')+fmt(x)}
 function coinActionMini(v,name){
@@ -1768,6 +2028,60 @@ function renderReport(){
 
 function renderSettings(){
   setView(cloneTpl('settingsTpl'));
+
+  const syncCfg=syncLoadCfgV180();
+  syncApiUrlV180.value=syncCfg.apiUrl||'';
+  syncTokenV180.value=syncCfg.token||'';
+  syncEnabledV180.checked=!!syncCfg.enabled;
+  syncUpdateStatusUiV180();
+
+  function storeSyncFieldsV180(enableValue=null){
+    const cfg=syncLoadCfgV180();
+    cfg.apiUrl=syncNormalizeApiV180(syncApiUrlV180.value);
+    cfg.token=syncTokenV180.value.trim();
+    if(enableValue!==null)cfg.enabled=!!enableValue;
+    syncStoreCfgV180(cfg);
+    return cfg;
+  }
+
+  syncSaveConfigV180.onclick=()=>{
+    const cfg=storeSyncFieldsV180(syncEnabledV180.checked);
+    syncUpdateStatusUiV180();
+    if(cfg.enabled)scheduleServerSyncV180();
+    alert('تنظیمات اتصال ذخیره شد.');
+  };
+  syncEnabledV180.onchange=()=>{
+    const cfg=storeSyncFieldsV180(syncEnabledV180.checked);
+    syncUpdateStatusUiV180();
+    if(cfg.enabled)scheduleServerSyncV180();
+  };
+  syncTestV180.onclick=async()=>{
+    try{storeSyncFieldsV180(null);await syncTestConnectionV180()}
+    catch(err){syncStatusLabelV180('error','خطا: '+String(err?.message||err))}
+  };
+  syncBootstrapV180.onclick=async()=>{
+    try{
+      storeSyncFieldsV180(true);syncEnabledV180.checked=true;
+      await syncBootstrapV180();
+    }catch(err){
+      syncStatusLabelV180('error','خطا: '+String(err?.message||err));
+      alert(String(err?.message||err));
+    }
+  };
+  syncPullV180.onclick=async()=>{
+    try{
+      storeSyncFieldsV180(true);syncEnabledV180.checked=true;
+      await syncPullReplaceV180();
+    }catch(err){
+      syncStatusLabelV180('error','خطا: '+String(err?.message||err));
+      alert(String(err?.message||err));
+    }
+  };
+  syncNowV180.onclick=async()=>{
+    storeSyncFieldsV180(true);syncEnabledV180.checked=true;
+    await syncNowV180({silent:false});
+  };
+
   usdAed.value=state.fx.usdAed;eurUsd.value=state.fx.eurUsd;usdQar.value=state.fx.usdQar;usdTry.value=state.fx.usdTry;omrAed.value=state.fx.omrAed;
   saveFx.onclick=()=>{state.fx={usdAed:+usdAed.value||3.67,eurUsd:+eurUsd.value||1.15,usdQar:+usdQar.value||3.67,usdTry:+usdTry.value||48,omrAed:+omrAed.value||9.5};save();alert('ضرایب ذخیره شد')};
   function tags(){currencyList.innerHTML=state.currencies.map(c=>`<span class="tag">${c}</span>`).join('')}
@@ -1785,6 +2099,25 @@ function renderSettings(){
 
 document.querySelectorAll('.bottomNav button').forEach(b=>b.onclick=()=>show(b.dataset.view));
 themeBtn.onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';save();setTheme()};
+
+function normalizeLegacySyncFieldsV180(){
+  let changed=false;
+  state.trades=(state.trades||[]).map(t=>{
+    if(Number.isFinite(Number(t._updatedAt))&&Number(t._updatedAt)>0)return t;
+    changed=true;
+    return {...t,_updatedAt:Number(t.ts||t.id||Date.now())};
+  });
+  if(changed)localStorage.setItem(KEY,JSON.stringify(state));
+
+  const meta=syncLoadMetaV180();
+  if(!meta.settingsUpdatedAt){
+    meta.settingsUpdatedAt=Date.now();
+    syncStoreMetaV180(meta);
+  }
+  syncDeviceIdV180();
+}
+normalizeLegacySyncFieldsV180();
+
 setTheme();show('dashboard');
 
 if('serviceWorker' in navigator){
@@ -1823,13 +2156,13 @@ window.addEventListener('orientationchange',()=>{
 });
 
 
-const PWA_SHELL_VERSION='1.7.7';
+const PWA_SHELL_VERSION='1.8.0';
 
 async function installPwaUpdateManagerV174(){
   if(!('serviceWorker' in navigator))return;
 
   try{
-    const reg=await navigator.serviceWorker.register('./sw.js?v=177',{
+    const reg=await navigator.serviceWorker.register('./sw.js?v=180',{
       scope:'./',
       updateViaCache:'none'
     });
@@ -1860,7 +2193,7 @@ async function installPwaUpdateManagerV174(){
         if(target && target!==seen){
           sessionStorage.setItem('khonji_sw_seen',target);
           // One controlled reload only, avoiding loops.
-          location.replace('./index.html?v=177');
+          location.replace('./index.html?v=180');
         }
       }
     });
@@ -1869,7 +2202,7 @@ async function installPwaUpdateManagerV174(){
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
       if(reloading)return;
       reloading=true;
-      setTimeout(()=>location.replace('./index.html?v=177'),50);
+      setTimeout(()=>location.replace('./index.html?v=180'),50);
     });
 
   }catch(err){
@@ -1883,22 +2216,22 @@ function markStandaloneVersionV174(){
   const standalone =
     window.matchMedia?.('(display-mode: standalone)').matches ||
     window.navigator.standalone===true;
-  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.7.7');
+  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.8.0');
   if(badge && standalone){
-    badge.title='PWA standalone • shell 1.7.7';
+    badge.title='PWA standalone • shell 1.8.0';
   }
 }
 document.addEventListener('DOMContentLoaded',markStandaloneVersionV174);
 
 
 
-function ensurePwaRepairButtonV177(){
-  if(document.getElementById('pwaRepairBtnV177'))return;
+function ensurePwaRepairButtonV180(){
+  if(document.getElementById('pwaRepairBtnV180'))return;
 
   const btn=document.createElement('button');
   btn.type='button';
-  btn.id='pwaRepairBtnV177';
-  btn.className='pwaRepairBtnV177';
+  btn.id='pwaRepairBtnV180';
+  btn.className='pwaRepairBtnV180';
   btn.textContent='به‌روزرسانی اجباری';
   btn.title='پاک‌کردن کش برنامه و دریافت نسخه جدید بدون حذف معاملات';
 
@@ -1937,12 +2270,12 @@ function ensurePwaRepairButtonV177(){
 
       // 3) Mark repair attempt in sessionStorage only.
       try{
-        sessionStorage.setItem('khonji_force_repair_v177','1');
+        sessionStorage.setItem('khonji_force_repair_v180','1');
       }catch(_){}
 
       // 4) Reload a versioned URL with a one-time cache-buster.
       const u=new URL('./index.html', location.href);
-      u.searchParams.set('v','177');
+      u.searchParams.set('v','180');
       u.searchParams.set('repair',Date.now().toString());
       location.replace(u.toString());
     }catch(err){
@@ -1956,5 +2289,5 @@ function ensurePwaRepairButtonV177(){
   document.body.appendChild(btn);
 }
 
-document.addEventListener('DOMContentLoaded',ensurePwaRepairButtonV177);
-setTimeout(ensurePwaRepairButtonV177,500);
+document.addEventListener('DOMContentLoaded',ensurePwaRepairButtonV180);
+setTimeout(ensurePwaRepairButtonV180,500);

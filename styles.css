@@ -2054,7 +2054,7 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
 
 
 /* ===== v1.7.6 Forced PWA repair/update ===== */
-.pwaRepairBtnV177{
+.pwaRepairBtnV180{
   position:fixed;
   top:calc(env(safe-area-inset-top) + 52px);
   left:max(14px, env(safe-area-inset-left));
@@ -2072,11 +2072,11 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
   backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
 }
-.pwaRepairBtnV177:disabled{
+.pwaRepairBtnV180:disabled{
   opacity:.65;
 }
 @media (max-width:699px){
-  .pwaRepairBtnV177{
+  .pwaRepairBtnV180{
     font-size:10px;
     padding:5px 9px;
   }
@@ -2115,3 +2115,19 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
 #mainAdvice .adviceBalancedV177{
   color:var(--muted) !important;
 }
+
+/* ===== v1.8.0 Server Sync ===== */
+.syncPanelV180{border-color:color-mix(in srgb,var(--green) 35%,var(--line))!important}
+.syncPanelHeadV180{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.syncPanelHeadV180 h3{margin:0 0 5px}.syncPanelHeadV180 p{margin:0;color:var(--muted);line-height:1.6}
+.syncDotV180{width:14px;height:14px;min-width:14px;border-radius:50%;margin-top:5px;background:var(--muted);box-shadow:0 0 0 4px rgba(255,255,255,.04)}
+.syncDotV180.ok{background:var(--green)}.syncDotV180.error{background:var(--red)}.syncDotV180.wait{background:var(--gold)}.syncDotV180.off{background:var(--muted)}
+.syncFieldsV180{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.syncFieldsV180 label{display:flex;flex-direction:column;gap:7px;font-weight:800}
+.syncFieldsV180 input{min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);color:var(--text);padding:10px 12px;font:inherit}
+.syncStatusBoxV180{margin:12px 0;padding:11px 13px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-weight:800;line-height:1.6}
+.syncActionGridV180{display:grid;grid-template-columns:1fr;gap:9px;margin-top:10px}.syncActionGridV180 button{min-height:48px}
+.syncPrimaryV180{background:var(--green)!important;color:#fff!important}
+.syncToggleV180{margin-top:13px;display:flex;align-items:center;gap:9px;font-weight:900}.syncToggleV180 input{width:20px;height:20px}
+.syncWarningV180{margin:12px 0 0;color:var(--gold);font-size:12px;line-height:1.8}
+@media(max-width:699px){.syncFieldsV180{grid-template-columns:1fr}}
