@@ -1026,3 +1026,143 @@ input[data-custom-keypad="1"],
     font-size:34px;
   }
 }
+
+
+/* ===== v1.5.6 Refined Numeric Keypad ===== */
+.customNumericKeypad{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:5000;
+  width:100%;
+  max-width:none;
+  transform:translateY(105%);
+  transition:transform .16s ease-out;
+  background:var(--surface) !important;
+  border-top:1px solid var(--line);
+  border-radius:20px 20px 0 0;
+  box-shadow:0 -18px 60px rgba(0,0,0,.45);
+  padding:12px 14px calc(14px + env(safe-area-inset-bottom));
+  direction:ltr;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  opacity:1 !important;
+}
+.customNumericKeypad.show{transform:translateY(0)}
+
+.ckHandle{display:none !important}
+
+.ckTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 10px;
+  direction:rtl;
+}
+.ckTitleWrap{
+  min-width:0;
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+}
+.ckTitleWrap strong{
+  color:var(--text);
+  font-size:17px;
+  font-weight:900;
+}
+.ckTitleWrap span{
+  color:var(--muted);
+  font-size:13px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:220px;
+}
+.ckDone{
+  min-width:86px;
+  height:46px;
+  border:0;
+  border-radius:14px;
+  background:var(--green) !important;
+  color:#fff !important;
+  font-size:16px;
+  font-weight:900;
+  box-shadow:none !important;
+}
+
+.ckGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.ckGrid button{
+  height:62px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface2) !important;
+  color:var(--text) !important;
+  font-size:30px;
+  font-weight:800;
+  line-height:1;
+  box-shadow:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.ckGrid button:active{
+  transform:scale(.985);
+  background:color-mix(in srgb,var(--surface2) 86%,white) !important;
+}
+.ckGrid .ckBack{
+  color:var(--red) !important;
+  font-size:26px;
+}
+.ckGrid button[data-k="."]{
+  font-size:34px;
+}
+
+body.customKeypadOpen #view{
+  padding-bottom:390px !important;
+}
+
+/* Keep the active field visually above the keypad. */
+body.customKeypadOpen input[data-custom-keypad="1"]:focus,
+body.customKeypadOpen .pickerQtyInput:focus{
+  box-shadow:0 0 0 2px var(--gold) inset !important;
+}
+
+@media (min-width:768px){
+  .customNumericKeypad{
+    left:50%;
+    right:auto;
+    width:min(640px,calc(100vw - 36px));
+    transform:translate(-50%,105%);
+    border:1px solid var(--line);
+    border-bottom:0;
+    border-radius:22px 22px 0 0;
+    padding:12px 14px calc(14px + env(safe-area-inset-bottom));
+  }
+  .customNumericKeypad.show{
+    transform:translate(-50%,0);
+  }
+  .ckGrid button{
+    height:66px;
+    font-size:32px;
+  }
+  body.customKeypadOpen #view{
+    padding-bottom:420px !important;
+  }
+}
+
+@media (orientation:landscape) and (min-width:768px){
+  .customNumericKeypad{
+    width:min(520px,48vw);
+  }
+  .ckGrid button{
+    height:54px;
+    font-size:28px;
+  }
+  body.customKeypadOpen #view{
+    padding-bottom:340px !important;
+  }
+}

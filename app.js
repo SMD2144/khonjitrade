@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.5.5';
+const BUILD_VERSION='1.5.6';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -560,7 +560,11 @@ let customKeypadTarget=null;
 
 function closeCustomKeypad(){
   const kp=document.getElementById('customNumericKeypad');
-  if(kp)kp.classList.remove('show');
+  if(kp){
+    kp.classList.remove('show');
+    const label=kp.querySelector('#ckFieldLabel');
+    if(label)label.textContent='';
+  }
   customKeypadTarget=null;
   document.body.classList.remove('customKeypadOpen');
 }
@@ -573,10 +577,12 @@ function ensureCustomKeypad(){
   kp.id='customNumericKeypad';
   kp.className='customNumericKeypad';
   kp.innerHTML=`
-    <div class="ckHandle"></div>
     <div class="ckTop">
-      <strong>ورود عدد</strong>
-      <button type="button" data-k="done">تمام</button>
+      <div class="ckTitleWrap">
+        <strong>ورود عدد</strong>
+        <span id="ckFieldLabel"></span>
+      </div>
+      <button type="button" data-k="done" class="ckDone">تمام</button>
     </div>
     <div class="ckGrid">
       <button type="button" data-k="1">1</button>
@@ -628,18 +634,28 @@ function ensureCustomKeypad(){
 function openCustomKeypad(el){
   customKeypadTarget=el;
   const kp=ensureCustomKeypad();
+  const label=kp.querySelector('#ckFieldLabel');
+  if(label){
+    const panel=el.closest('.panel');
+    const txt=panel?.querySelector('label, .fieldLabel, .stepLabel')?.textContent?.trim()
+      || el.getAttribute('aria-label')
+      || '';
+    label.textContent=txt;
+  }
   kp.classList.add('show');
   document.body.classList.add('customKeypadOpen');
 
   try{el.focus({preventScroll:true})}catch(_){el.focus()}
   setTimeout(()=>{
     const r=el.closest('.panel')?.getBoundingClientRect() || el.getBoundingClientRect();
-    const kpH=kp.getBoundingClientRect().height||360;
-    const safeBottom=window.innerHeight-kpH-18;
+    const kpRect=kp.getBoundingClientRect();
+    const safeBottom=kpRect.top-18;
     if(r.bottom>safeBottom){
-      window.scrollBy({top:r.bottom-safeBottom+20,behavior:'smooth'});
+      window.scrollBy({top:r.bottom-safeBottom+22,behavior:'smooth'});
+    }else if(r.top<70){
+      window.scrollBy({top:r.top-70,behavior:'smooth'});
     }
-  },60);
+  },80);
 }
 
 function installCustomNumericKeypad(scope=document){

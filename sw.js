@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.5.5-custom-keypad';
+const CACHE='khonji-pwa-v1.5.6-keypad-refine';
 const CORE=[
   './',
   './index.html?v=112',
