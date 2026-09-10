@@ -1,9 +1,9 @@
-const CACHE='khonji-pwa-v1.6.5-hard-layout';
+const CACHE='khonji-pwa-v1.6.6-top-align';
 const CORE=[
   './',
-  './index.html?v=165',
-  './styles.css?v=165',
-  './app.js?v=165',
+  './index.html?v=166',
+  './styles.css?v=166',
+  './app.js?v=166',
   './manifest.json',
   './icon-192.svg',
   './icon-512.svg'

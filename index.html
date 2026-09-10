@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
-  <link rel="stylesheet" href="styles.css?v=165"/>
+  <link rel="stylesheet" href="styles.css?v=166"/>
   <title>دفتر معاملات طلا</title>
 
 <style id="dashboardCritical165">
@@ -64,6 +64,44 @@
 }
 </style>
 
+
+<style id="dashboardCritical166">
+.dashboardV164 .dashboardTopV164{
+  margin-top:-10px !important;
+  align-items:start !important;
+}
+.dashboardV164 .dashboardStatusColV164,
+.dashboardV164 .dashboardStatsColV164{
+  margin-top:0 !important;
+  align-self:start !important;
+}
+.dashboardV164 .dashboardStatusColV164 > .sectionTitle,
+.dashboardV164 .dashboardStatsColV164 > .sectionTitle{
+  margin-top:0 !important;
+}
+.dashboardV164 .dashboardStatusColV164 .sideTitle{
+  margin-top:0 !important;
+  line-height:1.15 !important;
+}
+
+/* Keep both top blocks visually aligned on the same baseline. */
+.dashboardV164 .dashboardStatusColV164,
+.dashboardV164 .dashboardStatsColV164{
+  padding-top:0 !important;
+}
+
+@media (min-width:700px) and (orientation:portrait){
+  .dashboardV164 .dashboardTopV164{
+    margin-top:-12px !important;
+  }
+}
+@media (min-width:900px) and (orientation:landscape){
+  .dashboardV164 .dashboardTopV164{
+    margin-top:-10px !important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div id="app">
@@ -73,7 +111,7 @@
       <p>ثبت سریع، دفتر روزانه و بالانس</p>
     </div>
     <button id="themeBtn" class="iconBtn">◐</button>
-  <div id="appVersionBadge" class="versionBadge">v1.6.5</div></header>
+  <div id="appVersionBadge" class="versionBadge">v1.6.6</div></header>
 
   <main id="view"></main>
 
@@ -269,6 +307,6 @@
   </section>
 </template>
 
-<script src="app.js?v=165"></script>
+<script src="app.js?v=166"></script>
 </body>
 </html>

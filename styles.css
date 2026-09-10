@@ -1483,3 +1483,40 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
     order:0 !important;
   }
 }
+
+
+/* ===== v1.6.6 Top alignment refinement ===== */
+.dashboardTopV164{
+  margin-top:-10px !important;
+  align-items:start !important;
+}
+.dashboardStatusColV164,
+.dashboardStatsColV164{
+  margin-top:0 !important;
+  padding-top:0 !important;
+  align-self:start !important;
+}
+.dashboardStatusColV164 .sideTitle{
+  margin-top:0 !important;
+  margin-bottom:10px !important;
+}
+.dashboardStatsColV164 .statsGridV164{
+  margin-top:0 !important;
+}
+
+/* ثبت سریع عمداً بدون تغییر */
+.quickSectionV164{
+  margin-top:18px !important;
+}
+
+@media (min-width:700px) and (orientation:portrait){
+  .dashboardTopV164{
+    margin-top:-12px !important;
+  }
+}
+
+@media (min-width:900px) and (orientation:landscape){
+  .dashboardTopV164{
+    margin-top:-10px !important;
+  }
+}

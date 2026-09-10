@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.6.5';
+const BUILD_VERSION='1.6.6';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -520,12 +520,19 @@ function applyDashboardPriorityLayout(){
   status.style.setProperty('direction','rtl','important');
   status.style.setProperty('min-width','0','important');
   status.style.setProperty('order','0','important');
+  status.style.setProperty('margin-top','0','important');
+  status.style.setProperty('align-self','start','important');
 
   stats.style.setProperty('grid-column',w>=700?'2':'1','important');
   stats.style.setProperty('grid-row',w>=700?'1':'2','important');
   stats.style.setProperty('direction','rtl','important');
   stats.style.setProperty('min-width','0','important');
   stats.style.setProperty('order','0','important');
+  stats.style.setProperty('margin-top','0','important');
+  stats.style.setProperty('align-self','start','important');
+
+  // Pull the whole top dashboard block closer to the header, equally in both orientations.
+  top.style.setProperty('margin-top', portrait ? '-10px' : '-8px','important');
 
   quick.style.setProperty('display','block','important');
   quick.style.setProperty('width','100%','important');
