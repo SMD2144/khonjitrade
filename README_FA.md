@@ -358,3 +358,14 @@ v1.7.5 MAIN ADVICE RESTORE
 - بخر سبز، بفروش قرمز، بالانس خنثی.
 - مکانیزم آپدیت اجباری v1.7.4 حفظ و به v1.7.5 ارتقا داده شد.
 - storage key و منطق محاسبات دست نخورده.
+
+
+v1.7.6 FORCE PWA REPAIR
+- دکمه «به‌روزرسانی اجباری» داخل خود وب‌اپ اضافه شد.
+- با دو تأیید کار می‌کند.
+- فقط Service Worker و Cache Storage پاک می‌شوند.
+- localStorage، معاملات، ضرایب و اطلاعات کاربر عمداً دست نمی‌خورند.
+- سپس صفحه با URL نسخه‌دار و cache-buster باز می‌شود.
+- مکانیزم update عادی v1.7.5 نیز حفظ و به v1.7.6 ارتقا داده شد.
+- Service Worker جدید skipWaiting/clients.claim و پاکسازی کش قدیمی دارد.
+- storage key unchanged: khonji_pwa_v1

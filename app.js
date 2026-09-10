@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.7.5';
+const BUILD_VERSION='1.7.6';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -1823,13 +1823,13 @@ window.addEventListener('orientationchange',()=>{
 });
 
 
-const PWA_SHELL_VERSION='1.7.5';
+const PWA_SHELL_VERSION='1.7.6';
 
 async function installPwaUpdateManagerV174(){
   if(!('serviceWorker' in navigator))return;
 
   try{
-    const reg=await navigator.serviceWorker.register('./sw.js?v=175',{
+    const reg=await navigator.serviceWorker.register('./sw.js?v=176',{
       scope:'./',
       updateViaCache:'none'
     });
@@ -1860,7 +1860,7 @@ async function installPwaUpdateManagerV174(){
         if(target && target!==seen){
           sessionStorage.setItem('khonji_sw_seen',target);
           // One controlled reload only, avoiding loops.
-          location.replace('./index.html?v=175');
+          location.replace('./index.html?v=176');
         }
       }
     });
@@ -1869,7 +1869,7 @@ async function installPwaUpdateManagerV174(){
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
       if(reloading)return;
       reloading=true;
-      setTimeout(()=>location.replace('./index.html?v=175'),50);
+      setTimeout(()=>location.replace('./index.html?v=176'),50);
     });
 
   }catch(err){
@@ -1883,9 +1883,78 @@ function markStandaloneVersionV174(){
   const standalone =
     window.matchMedia?.('(display-mode: standalone)').matches ||
     window.navigator.standalone===true;
-  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.7.5');
+  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.7.6');
   if(badge && standalone){
-    badge.title='PWA standalone • shell 1.7.5';
+    badge.title='PWA standalone • shell 1.7.6';
   }
 }
 document.addEventListener('DOMContentLoaded',markStandaloneVersionV174);
+
+
+
+function ensurePwaRepairButtonV176(){
+  if(document.getElementById('pwaRepairBtnV176'))return;
+
+  const btn=document.createElement('button');
+  btn.type='button';
+  btn.id='pwaRepairBtnV176';
+  btn.className='pwaRepairBtnV176';
+  btn.textContent='به‌روزرسانی اجباری';
+  btn.title='پاک‌کردن کش برنامه و دریافت نسخه جدید بدون حذف معاملات';
+
+  btn.onclick=async()=>{
+    const ok1=confirm(
+      'به‌روزرسانی اجباری انجام شود؟\n\n' +
+      'کش و Service Worker برنامه پاک و نسخه جدید از سرور دریافت می‌شود.\n' +
+      'معاملات و اطلاعات ذخیره‌شده حذف نمی‌شوند.'
+    );
+    if(!ok1)return;
+
+    const ok2=confirm(
+      'تأیید نهایی\n\n' +
+      'فقط Cache Storage و Service Worker پاک می‌شوند.\n' +
+      'localStorage برنامه و معاملات باقی می‌مانند.\n\n' +
+      'ادامه بدهم؟'
+    );
+    if(!ok2)return;
+
+    btn.disabled=true;
+    const oldText=btn.textContent;
+    btn.textContent='در حال تعمیر...';
+
+    try{
+      // 1) Unregister all service workers for this origin/scope.
+      if('serviceWorker' in navigator){
+        const regs=await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));
+      }
+
+      // 2) Delete Cache Storage ONLY. Do NOT touch localStorage/indexedDB.
+      if('caches' in window){
+        const keys=await caches.keys();
+        await Promise.all(keys.map(k=>caches.delete(k).catch(()=>false)));
+      }
+
+      // 3) Mark repair attempt in sessionStorage only.
+      try{
+        sessionStorage.setItem('khonji_force_repair_v176','1');
+      }catch(_){}
+
+      // 4) Reload a versioned URL with a one-time cache-buster.
+      const u=new URL('./index.html', location.href);
+      u.searchParams.set('v','176');
+      u.searchParams.set('repair',Date.now().toString());
+      location.replace(u.toString());
+    }catch(err){
+      console.error('PWA repair failed:',err);
+      alert('تعمیر خودکار کامل نشد. اینترنت و دسترسی سایت را چک کن و دوباره بزن.');
+      btn.disabled=false;
+      btn.textContent=oldText;
+    }
+  };
+
+  document.body.appendChild(btn);
+}
+
+document.addEventListener('DOMContentLoaded',ensurePwaRepairButtonV176);
+setTimeout(ensurePwaRepairButtonV176,500);
