@@ -1,9 +1,9 @@
-const CACHE='khonji-pwa-v1.6.8-fx-balance';
+const CACHE='khonji-pwa-v1.6.9-fx-canonical-fix';
 const CORE=[
   './',
-  './index.html?v=168',
-  './styles.css?v=168',
-  './app.js?v=168',
+  './index.html?v=169',
+  './styles.css?v=169',
+  './app.js?v=169',
   './manifest.json',
   './icon-192.svg',
   './icon-512.svg'

@@ -1709,3 +1709,34 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
   .fxModalCard{width:96vw;padding:14px}
   .fxDetailRow{grid-template-columns:72px 1fr}
 }
+
+
+/* ===== v1.6.9 FX canonical balance fix ===== */
+.fxCode{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.fxCode b{
+  font-size:16px;
+}
+.fxCode small{
+  font-size:11px;
+  color:var(--muted);
+  direction:ltr;
+}
+.fxAction{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.fxAction .fxUsdEq{
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+}
+.fxAction .fxNoRate{
+  font-size:12px;
+  font-weight:700;
+  color:var(--gold);
+}
