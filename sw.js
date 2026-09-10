@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.5.3-native-ipad-keyboard';
+const CACHE='khonji-pwa-v1.5.4-keyboard-types';
 const CORE=[
   './',
   './index.html?v=112',

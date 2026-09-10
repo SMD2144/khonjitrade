@@ -122,3 +122,11 @@ v1.5.3 NATIVE IPAD KEYBOARD
 - inputmode مناسب برای عدد و متن حفظ شده.
 - منطق بالانس و پوشش بدون تغییر.
 - storage key unchanged: khonji_pwa_v1
+
+
+v1.5.4 KEYBOARD TYPES
+- فیلدهای وزن، مبلغ، نرخ، تعداد، ضرایب و مقادیر پوشش با inputmode عددی/اعشاری تنظیم شدند.
+- طرف حساب، توضیحات و نام ارز جدید با lang=fa و dir=rtl تنظیم شدند.
+- وب‌اپ زبان کیبورد iPadOS را نمی‌تواند اجباری تغییر دهد؛ این بخش تحت کنترل خود سیستم‌عامل است.
+- نسخه داخل برنامه v1.5.4.
+- storage key unchanged: khonji_pwa_v1

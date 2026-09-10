@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
-  <link rel="stylesheet" href="styles.css?v=153"/>
+  <link rel="stylesheet" href="styles.css?v=154"/>
   <title>دفتر معاملات طلا</title>
 </head>
 <body>
@@ -20,7 +20,7 @@
       <p>ثبت سریع، دفتر روزانه و بالانس</p>
     </div>
     <button id="themeBtn" class="iconBtn">◐</button>
-  <div id="appVersionBadge" class="versionBadge">v1.5.3</div></header>
+  <div id="appVersionBadge" class="versionBadge">v1.5.4</div></header>
 
   <main id="view"></main>
 
@@ -110,7 +110,7 @@
     <button id="plusBtn" class="plus" aria-label="افزایش">+</button>
     <div class="qtyCenter">
       <label id="qtyLabel">وزن / تعداد / مقدار</label>
-      <input id="qty" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" enterkeyhint="next" autocomplete="off" placeholder="0">
+      <input id="qty" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" enterkeyhint="next" autocomplete="off" placeholder="0" dir="ltr" aria-label="مقدار عددی">
     </div>
     <button id="minusBtn" class="minus" aria-label="کاهش">−</button>
   </section>
@@ -120,12 +120,12 @@
   <section class="tabletFormGrid">
     <label class="field panel">
       <span>مبلغ کل (تومان) — اختیاری</span>
-      <input id="total" type="text" inputmode="numeric" pattern="[0-9۰-۹,]*" enterkeyhint="next" autocomplete="off">
+      <input id="total" type="text" inputmode="numeric" pattern="[0-9۰-۹,]*" enterkeyhint="next" autocomplete="off" dir="ltr" aria-label="مبلغ کل">
     </label>
 
     <label class="field panel">
       <span>نرخ واحد (تومان) — اختیاری</span>
-      <input id="unitRate" type="text" inputmode="numeric" pattern="[0-9۰-۹,]*" enterkeyhint="next" autocomplete="off">
+      <input id="unitRate" type="text" inputmode="numeric" pattern="[0-9۰-۹,]*" enterkeyhint="next" autocomplete="off" dir="ltr" aria-label="نرخ واحد">
     </label>
   </section>
 
@@ -134,12 +134,12 @@
   <section class="tabletFormGrid">
     <label class="field panel">
       <span>طرف حساب — اختیاری</span>
-      <input id="party" type="text" inputmode="text" enterkeyhint="next" autocomplete="off">
+      <input id="party" type="text" inputmode="text" enterkeyhint="next" autocomplete="off" lang="fa" dir="rtl" autocapitalize="none" spellcheck="false" aria-label="طرف حساب">
     </label>
 
     <label class="field panel noteField">
       <span>توضیحات — اختیاری</span>
-      <textarea id="note" rows="4" inputmode="text" enterkeyhint="done" autocomplete="off"></textarea>
+      <textarea id="note" rows="4" inputmode="text" enterkeyhint="done" autocomplete="off" lang="fa" dir="rtl" autocapitalize="none" spellcheck="false" aria-label="توضیحات"></textarea>
     </label>
   </section>
 
@@ -171,11 +171,11 @@
   <section class="panel">
     <h3>ضرایب تبدیل ارز</h3>
     <div class="settingsGrid">
-      <label>دلار / درهم<input id="usdAed" type="text" inputmode="decimal" enterkeyhint="next"/></label>
-      <label>یورو / دلار<input id="eurUsd" type="text" inputmode="decimal" enterkeyhint="next"/></label>
-      <label>دلار / ریال قطر<input id="usdQar" type="text" inputmode="decimal" enterkeyhint="next"/></label>
-      <label>دلار / لیر<input id="usdTry" type="text" inputmode="decimal" enterkeyhint="next"/></label>
-      <label>ریال عمان / درهم<input id="omrAed" type="text" inputmode="decimal" enterkeyhint="done"/></label>
+      <label>دلار / درهم<input id="usdAed" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" enterkeyhint="next" autocomplete="off" dir="ltr"></label>
+      <label>یورو / دلار<input id="eurUsd" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" enterkeyhint="next" autocomplete="off" dir="ltr"></label>
+      <label>دلار / ریال قطر<input id="usdQar" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" enterkeyhint="next" autocomplete="off" dir="ltr"></label>
+      <label>دلار / لیر<input id="usdTry" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" enterkeyhint="next" autocomplete="off" dir="ltr"></label>
+      <label>ریال عمان / درهم<input id="omrAed" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" enterkeyhint="next" autocomplete="off" dir="ltr"></label>
     </div>
     <button id="saveFx" class="secondaryBtn">ذخیره ضرایب</button>
   </section>
@@ -183,7 +183,7 @@
   <section class="panel">
     <h3>ارزهای سفارشی</h3>
     <div class="inlineAdd">
-      <input id="customCurrencyName" type="text" inputmode="text" enterkeyhint="done" placeholder="مثلاً پوند"/>
+      <input id="customCurrencyName" type="text" inputmode="text" enterkeyhint="done" autocomplete="off" lang="fa" dir="rtl" autocapitalize="none" spellcheck="false" placeholder="مثلاً پوند">
       <button id="addCurrencyBtn">افزودن</button>
     </div>
     <div id="currencyList" class="tagList"></div>
@@ -204,6 +204,6 @@
   </section>
 </template>
 
-<script src="app.js?v=153"></script>
+<script src="app.js?v=154"></script>
 </body>
 </html>

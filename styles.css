@@ -913,3 +913,19 @@ input:focus,textarea:focus{
   .stepField input{font-size:34px !important}
   .field input,.field textarea{font-size:20px !important}
 }
+
+
+/* ===== v1.5.4 Keyboard Type Hints ===== */
+input[inputmode="numeric"],
+input[inputmode="decimal"]{
+  direction:ltr !important;
+  text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+
+input[lang="fa"],
+textarea[lang="fa"]{
+  direction:rtl !important;
+  text-align:right !important;
+  unicode-bidi:plaintext;
+}

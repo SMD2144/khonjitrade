@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.5.3';
+const BUILD_VERSION='1.5.4';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -275,7 +275,7 @@ function openSmartCoverPicker(targetName){
         <span>مقدار موردنظر برای پوشش</span>
         <div class="targetStepper">
           <button data-target-op="minus">−</button>
-          <input id="targetQtyInput" inputmode="decimal">
+          <input id="targetQtyInput" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" dir="ltr">
           <button data-target-op="plus">+</button>
         </div>
         <small id="targetEqText"></small>
@@ -337,7 +337,7 @@ function openSmartCoverPicker(targetName){
         </div>
         <div class="pickerStepper">
           <button data-op="minus">−</button>
-          <input class="pickerQtyInput" inputmode="decimal"
+          <input class="pickerQtyInput" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" dir="ltr"
                  value="${s.qty ? Number(s.qty.toFixed(isGold?3:0)) : 0}">
           <button data-op="plus">+</button>
         </div>
@@ -553,6 +553,31 @@ function renderDashboard(){
   document.querySelector('[data-action="open-balance"]').onclick=()=>show('report');
 }
 
+
+
+function applyKeyboardHints(scope=document){
+  scope.querySelectorAll('input,textarea').forEach(el=>{
+    const id=el.id||'';
+    const numericIds=['qty','total','unitRate','usdAed','eurUsd','usdQar','usdTry','omrAed','targetQtyInput'];
+
+    if(numericIds.includes(id) || el.classList.contains('pickerQtyInput')){
+      if(id==='total' || id==='unitRate'){
+        el.setAttribute('inputmode','numeric');
+        el.setAttribute('pattern','[0-9۰-۹,]*');
+      }else{
+        el.setAttribute('inputmode','decimal');
+        el.setAttribute('pattern','[0-9۰-۹.,]*');
+      }
+      el.setAttribute('dir','ltr');
+    }else if(id==='party' || id==='note' || id==='customCurrencyName'){
+      el.setAttribute('inputmode','text');
+      el.setAttribute('lang','fa');
+      el.setAttribute('dir','rtl');
+      el.setAttribute('autocapitalize','none');
+      el.setAttribute('spellcheck','false');
+    }
+  });
+}
 
 function installEditableFocusFix(scope=document){
   const editableSelector='input:not([type="checkbox"]):not([type="file"]):not([disabled]), textarea:not([disabled])';
@@ -793,3 +818,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   const b=document.getElementById('appVersionBadge');
   if(b)b.textContent=`v${BUILD_VERSION}`;
 });
+
+document.addEventListener('DOMContentLoaded',()=>applyKeyboardHints(document));
+const keyboardHintObserver=new MutationObserver(()=>applyKeyboardHints(document));
+const keyboardHintView=document.getElementById('view');
+if(keyboardHintView)keyboardHintObserver.observe(keyboardHintView,{childList:true,subtree:true});
