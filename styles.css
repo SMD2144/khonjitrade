@@ -1197,3 +1197,11 @@ body.customKeypadOpen .pickerQtyInput:focus{
 .goldCalcStatus.warn{
   color:var(--red);
 }
+
+
+/* ===== v1.5.9 Zero-key reliability ===== */
+.ckGrid button.ckDisabled,
+.ckGrid button:disabled{
+  opacity:.28;
+  pointer-events:none;
+}

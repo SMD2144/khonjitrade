@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.5.8';
+const BUILD_VERSION='1.5.9';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -557,6 +557,7 @@ function renderDashboard(){
 
 
 let customKeypadTarget=null;
+let customKeypadRaw='';
 
 function closeCustomKeypad(){
   const kp=document.getElementById('customNumericKeypad');
@@ -566,6 +567,7 @@ function closeCustomKeypad(){
     if(label)label.textContent='';
   }
   customKeypadTarget=null;
+  customKeypadRaw='';
   document.body.classList.remove('customKeypadOpen');
 }
 
@@ -614,23 +616,38 @@ function ensureCustomKeypad(){
       return;
     }
 
-    let v=customKeypadTarget.value||'';
+    const allowsDecimal = customKeypadTarget.id==='qty'
+      || customKeypadTarget.id==='targetQtyInput'
+      || customKeypadTarget.classList.contains('pickerQtyInput');
 
     if(k==='back'){
-      v=v.slice(0,-1);
+      customKeypadRaw=customKeypadRaw.slice(0,-1);
     }else if(k==='.'){
-      if(!v.includes('.')) v = v ? v+'.' : '0.';
+      if(allowsDecimal && !customKeypadRaw.includes('.')){
+        customKeypadRaw = customKeypadRaw ? customKeypadRaw+'.' : '0.';
+      }
     }else{
-      v+=k;
+      // Append digit to RAW buffer. Never derive next value from formatted text.
+      // This is important for 0: 243 -> 2430 -> 24300 must remain exact.
+      if(/^[0-9]$/.test(k)){
+        if(customKeypadRaw==='0' && k!=='0' && !customKeypadRaw.includes('.')){
+          customKeypadRaw=k;
+        }else{
+          customKeypadRaw+=k;
+        }
+      }
     }
 
+    let display=customKeypadRaw;
     if(customKeypadTarget.id==='total' || customKeypadTarget.id==='unitRate'){
-      customKeypadTarget.value=formatGroupedInputValue(v,false,0);
+      display=formatGroupedInputValue(customKeypadRaw,false,0);
     }else if(customKeypadTarget.id==='qty'){
-      customKeypadTarget.value=formatGroupedInputValue(v,true,3);
-    }else{
-      customKeypadTarget.value=v;
+      display=formatGroupedInputValue(customKeypadRaw,true,3);
+    }else if(customKeypadTarget.id==='targetQtyInput' || customKeypadTarget.classList.contains('pickerQtyInput')){
+      display=formatGroupedInputValue(customKeypadRaw,true,3);
     }
+
+    customKeypadTarget.value=display;
     customKeypadTarget.dispatchEvent(new Event('input',{bubbles:true}));
   });
 
@@ -639,7 +656,14 @@ function ensureCustomKeypad(){
 
 function openCustomKeypad(el){
   customKeypadTarget=el;
+  customKeypadRaw=normalizeDigits(el.value||'');
   const kp=ensureCustomKeypad();
+  const decimalBtn=kp.querySelector('button[data-k="."]');
+  const allowsDecimal = el.id==='qty' || el.id==='targetQtyInput' || el.classList.contains('pickerQtyInput');
+  if(decimalBtn){
+    decimalBtn.disabled=!allowsDecimal;
+    decimalBtn.classList.toggle('ckDisabled',!allowsDecimal);
+  }
   const label=kp.querySelector('#ckFieldLabel');
   if(label){
     const panel=el.closest('.panel');

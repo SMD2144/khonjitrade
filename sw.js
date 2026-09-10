@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.5.8-linked-fix';
+const CACHE='khonji-pwa-v1.5.9-zero-fix';
 const CORE=[
   './',
   './index.html?v=112',
