@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.7.4';
+const BUILD_VERSION='1.7.5';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -906,41 +906,27 @@ function renderTotalGoldCoinAdvice(){
   const bal=Number(goldBalance18()||0);
   const abs=Math.abs(bal);
 
-  el.classList.remove('adviceBuyV172','adviceSellV172','adviceBalancedV172');
+  el.className='advice';
+  el.style.display='flex';
+  el.style.visibility='visible';
+  el.style.opacity='1';
 
   if(abs<0.0005){
-    el.innerHTML='<span class="advicePrefixV172">طلا و سکه سر هم</span><strong class="adviceActionV172">بالانس است</strong>';
-    el.classList.add('adviceBalancedV172');
+    el.innerHTML=
+      '<span class="advicePrefixV175">طلا و سکه سر هم</span>'+
+      '<strong class="adviceActionV175 adviceBalancedV175">بالانس است</strong>';
     return;
   }
 
-  const action = bal>0 ? 'بفروش' : 'بخر';
-  const cls = bal>0 ? 'adviceSellV172' : 'adviceBuyV172';
-
+  const isSell=bal>0;
   el.innerHTML=
-    `<span class="advicePrefixV172">برای بالانس طلا و سکه سر هم</span>`+
-    `<strong class="adviceActionV172">${formatGroupedNumber(abs,3)} گرم ${action}</strong>`;
-
-  el.classList.add(cls);
+    '<span class="advicePrefixV175">برای بالانس طلا و سکه سر هم</span>'+
+    `<strong class="adviceActionV175 ${isSell?'adviceSellV175':'adviceBuyV175'}">`+
+    `${formatGroupedNumber(abs,3)} گرم ${isSell?'بفروش':'بخر'}</strong>`;
 }
 
 
-function installMainAdviceGuardV173(){
-  const el=document.getElementById('mainAdvice');
-  if(!el || el.dataset.adviceGuard==='1')return;
-  el.dataset.adviceGuard='1';
-
-  let busy=false;
-  const obs=new MutationObserver(()=>{
-    if(busy)return;
-    busy=true;
-    requestAnimationFrame(()=>{
-      renderTotalGoldCoinAdvice();
-      busy=false;
-    });
-  });
-  obs.observe(el,{childList:true,characterData:true,subtree:true});
-}
+function installMainAdviceGuardV173(){}
 
 function renderDashboard(){
   setView(cloneTpl('dashboardTpl'));
@@ -1032,9 +1018,7 @@ function renderDashboard(){
   requestAnimationFrame(applyBottomUiV171);
 
   renderTotalGoldCoinAdvice();
-  requestAnimationFrame(renderTotalGoldCoinAdvice);
-
-  installMainAdviceGuardV173();
+  requestAnimationFrame(()=>renderTotalGoldCoinAdvice());
 }
 
 
@@ -1839,13 +1823,13 @@ window.addEventListener('orientationchange',()=>{
 });
 
 
-const PWA_SHELL_VERSION='1.7.4';
+const PWA_SHELL_VERSION='1.7.5';
 
 async function installPwaUpdateManagerV174(){
   if(!('serviceWorker' in navigator))return;
 
   try{
-    const reg=await navigator.serviceWorker.register('./sw.js?v=174',{
+    const reg=await navigator.serviceWorker.register('./sw.js?v=175',{
       scope:'./',
       updateViaCache:'none'
     });
@@ -1876,7 +1860,7 @@ async function installPwaUpdateManagerV174(){
         if(target && target!==seen){
           sessionStorage.setItem('khonji_sw_seen',target);
           // One controlled reload only, avoiding loops.
-          location.replace('./index.html?v=174');
+          location.replace('./index.html?v=175');
         }
       }
     });
@@ -1885,7 +1869,7 @@ async function installPwaUpdateManagerV174(){
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
       if(reloading)return;
       reloading=true;
-      setTimeout(()=>location.replace('./index.html?v=174'),50);
+      setTimeout(()=>location.replace('./index.html?v=175'),50);
     });
 
   }catch(err){
@@ -1899,9 +1883,9 @@ function markStandaloneVersionV174(){
   const standalone =
     window.matchMedia?.('(display-mode: standalone)').matches ||
     window.navigator.standalone===true;
-  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.7.4');
+  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.7.5');
   if(badge && standalone){
-    badge.title='PWA standalone • shell 1.7.4';
+    badge.title='PWA standalone • shell 1.7.5';
   }
 }
 document.addEventListener('DOMContentLoaded',markStandaloneVersionV174);

@@ -2017,3 +2017,37 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
 .dashboardStatsColV164 #mainAdvice.adviceBalancedV172 .adviceActionV172{
   color:var(--muted) !important;
 }
+
+
+/* ===== v1.7.5 Restore total gold+coin advice ===== */
+#mainAdvice{
+  display:flex !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  min-height:56px !important;
+  width:100% !important;
+  align-items:center !important;
+  justify-content:center !important;
+  flex-wrap:wrap !important;
+  gap:6px 9px !important;
+  margin-top:12px !important;
+  text-align:center !important;
+  line-height:1.5 !important;
+}
+#mainAdvice .advicePrefixV175{
+  color:var(--text) !important;
+  font-weight:850 !important;
+}
+#mainAdvice .adviceActionV175{
+  font-weight:950 !important;
+  white-space:nowrap !important;
+}
+#mainAdvice .adviceSellV175{
+  color:var(--red) !important;
+}
+#mainAdvice .adviceBuyV175{
+  color:var(--green) !important;
+}
+#mainAdvice .adviceBalancedV175{
+  color:var(--muted) !important;
+}
