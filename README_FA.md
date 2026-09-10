@@ -104,3 +104,13 @@ v1.5.1 LIVE STATUS COLORS
 - موارد بالانس خنثی می‌مانند.
 - کارت بالانس کل 18 عیار هم بر اساس اقدام لازم رنگ می‌گیرد.
 - storage key unchanged: khonji_pwa_v1
+
+
+v1.5.2 IPAD KEYBOARD FIX
+- رفع مشکل فوکوس فیلدها در Safari / Home Screen PWA روی iPadOS.
+- input و textarea در همان gesture لمس، فوکوس native می‌گیرند.
+- pointerdown + touchend fallback اضافه شد.
+- وزن/مبلغ/نرخ کیبورد عددی و طرف حساب/توضیحات کیبورد متنی درخواست می‌کنند.
+- هنگام باز شدن کیبورد، فیلد فعال با VisualViewport در محدوده قابل دید نگه داشته می‌شود.
+- هیچ تغییری در موتور بالانس/پوشش یا کلید ذخیره اطلاعات ایجاد نشده.
+- storage key: khonji_pwa_v1

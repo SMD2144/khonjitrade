@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.5.1-live-colors';
+const CACHE='khonji-pwa-v1.5.2-ipad-keyboard';
 const CORE=[
   './',
   './index.html?v=112',

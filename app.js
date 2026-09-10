@@ -552,6 +552,70 @@ function renderDashboard(){
   document.querySelector('[data-action="open-balance"]').onclick=()=>show('report');
 }
 
+
+function installEditableFocusFix(scope=document){
+  const editableSelector='input:not([type="checkbox"]):not([type="file"]):not([disabled]), textarea:not([disabled])';
+
+  scope.querySelectorAll(editableSelector).forEach(el=>{
+    el.removeAttribute('readonly');
+    el.style.pointerEvents='auto';
+
+    const forceNativeFocus=(ev)=>{
+      if(el.disabled)return;
+      // Keep this inside the user's touch/pointer event for iPadOS WebKit.
+      if(document.activeElement!==el){
+        try{ el.focus({preventScroll:true}); }
+        catch(_){ el.focus(); }
+      }
+
+      // Put caret at the end without changing the current value.
+      try{
+        const n=el.value.length;
+        el.setSelectionRange(n,n);
+      }catch(_){}
+    };
+
+    // pointerdown is the primary route on modern iPadOS.
+    el.addEventListener('pointerdown',forceNativeFocus,{passive:true});
+    // touchend is a WebKit fallback for older/standalone PWA behavior.
+    el.addEventListener('touchend',forceNativeFocus,{passive:true});
+
+    const revealFocusedField=()=>{
+      const run=()=>{
+        if(document.activeElement!==el)return;
+        const rect=el.closest('.panel')?.getBoundingClientRect() || el.getBoundingClientRect();
+        const vv=window.visualViewport;
+        const viewportTop=vv ? vv.offsetTop : 0;
+        const viewportBottom=viewportTop + (vv ? vv.height : window.innerHeight);
+        const save=document.getElementById('saveTrade');
+        const saveTop=save ? save.getBoundingClientRect().top : viewportBottom;
+        const safeBottom=Math.min(viewportBottom,saveTop)-20;
+        const safeTop=viewportTop+80;
+
+        if(rect.bottom>safeBottom){
+          window.scrollBy({top:rect.bottom-safeBottom+20,behavior:'smooth'});
+        }else if(rect.top<safeTop){
+          window.scrollBy({top:rect.top-safeTop-16,behavior:'smooth'});
+        }
+      };
+      requestAnimationFrame(run);
+      setTimeout(run,120);
+      setTimeout(run,320);
+    };
+
+    el.addEventListener('focus',revealFocusedField);
+  });
+}
+
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',()=>{
+    const el=document.activeElement;
+    if(el && (el.matches('input') || el.matches('textarea'))){
+      setTimeout(()=>el.scrollIntoView({block:'center',behavior:'smooth'}),80);
+    }
+  });
+}
+
 function renderEntry(){
   setView(cloneTpl('entryTpl'));
   let type=entryType;
@@ -639,6 +703,8 @@ function renderEntry(){
       normalCoin.checked=t.coinType==='NORMAL';refreshMode();
     }
   }
+
+  installEditableFocusFix(document);
 
   saveTrade.onclick=()=>{
     const asset=type==='COIN'?selectedCoin:selectedAsset;
@@ -733,3 +799,10 @@ setTheme();show('dashboard');
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }
+
+
+const editableFocusObserver=new MutationObserver(()=>{
+  installEditableFocusFix(document);
+});
+editableFocusObserver.observe(document.getElementById('view'),{childList:true,subtree:true});
+
