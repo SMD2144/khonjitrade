@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.7.1';
+const BUILD_VERSION='1.7.2';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -898,6 +898,32 @@ function applyBottomUiV171(){
   }
 }
 
+
+function renderTotalGoldCoinAdvice(){
+  const el=document.getElementById('mainAdvice');
+  if(!el)return;
+
+  const bal=Number(goldBalance18()||0);
+  const abs=Math.abs(bal);
+
+  el.classList.remove('adviceBuyV172','adviceSellV172','adviceBalancedV172');
+
+  if(abs<0.0005){
+    el.innerHTML='<span class="advicePrefixV172">طلا و سکه سر هم</span><strong class="adviceActionV172">بالانس است</strong>';
+    el.classList.add('adviceBalancedV172');
+    return;
+  }
+
+  const action = bal>0 ? 'بفروش' : 'بخر';
+  const cls = bal>0 ? 'adviceSellV172' : 'adviceBuyV172';
+
+  el.innerHTML=
+    `<span class="advicePrefixV172">برای بالانس طلا و سکه سر هم</span>`+
+    `<strong class="adviceActionV172">${formatGroupedNumber(abs,3)} گرم ${action}</strong>`;
+
+  el.classList.add(cls);
+}
+
 function renderDashboard(){
   setView(cloneTpl('dashboardTpl'));
   const today=state.trades.filter(isToday);
@@ -986,6 +1012,8 @@ function renderDashboard(){
   requestAnimationFrame(renderFxBalanceStatus);
 
   requestAnimationFrame(applyBottomUiV171);
+
+  requestAnimationFrame(renderTotalGoldCoinAdvice);
 }
 
 

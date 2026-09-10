@@ -1,9 +1,9 @@
-const CACHE='khonji-pwa-v1.7.1-bottom-ui';
+const CACHE='khonji-pwa-v1.7.2-total-advice';
 const CORE=[
   './',
-  './index.html?v=171',
-  './styles.css?v=171',
-  './app.js?v=171',
+  './index.html?v=172',
+  './styles.css?v=172',
+  './app.js?v=172',
   './manifest.json',
   './icon-192.svg',
   './icon-512.svg'

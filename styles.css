@@ -1967,3 +1967,38 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
     grid-template-columns:1fr !important;
   }
 }
+
+
+/* ===== v1.7.2 Total gold+coin balance advice ===== */
+#mainAdvice{
+  display:flex !important;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+  gap:7px 10px;
+  text-align:center;
+  line-height:1.5;
+}
+
+#mainAdvice .advicePrefixV172{
+  color:var(--text);
+  font-weight:800;
+}
+
+#mainAdvice .adviceActionV172{
+  font-size:1.08em;
+  font-weight:950;
+  white-space:nowrap;
+}
+
+#mainAdvice.adviceBuyV172 .adviceActionV172{
+  color:var(--green) !important;
+}
+
+#mainAdvice.adviceSellV172 .adviceActionV172{
+  color:var(--red) !important;
+}
+
+#mainAdvice.adviceBalancedV172 .adviceActionV172{
+  color:var(--muted) !important;
+}
