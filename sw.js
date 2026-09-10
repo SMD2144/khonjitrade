@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.6.1-deterministic-triad';
+const CACHE='khonji-pwa-v1.6.2-edit-session';
 const CORE=[
   './',
   './index.html?v=112',

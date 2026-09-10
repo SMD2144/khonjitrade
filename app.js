@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.6.1';
+const BUILD_VERSION='1.6.2';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -558,6 +558,8 @@ function renderDashboard(){
 
 let customKeypadTarget=null;
 let customKeypadRaw='';
+let customKeypadReplaceOnNextKey=false;
+let customKeypadEditingFieldId=null;
 
 function closeCustomKeypad(){
   const kp=document.getElementById('customNumericKeypad');
@@ -568,6 +570,8 @@ function closeCustomKeypad(){
   }
   customKeypadTarget=null;
   customKeypadRaw='';
+  customKeypadReplaceOnNextKey=false;
+  customKeypadEditingFieldId=null;
   document.body.classList.remove('customKeypadOpen');
 }
 
@@ -602,7 +606,10 @@ function ensureCustomKeypad(){
         <strong>ورود عدد</strong>
         <span id="ckFieldLabel"></span>
       </div>
-      <button type="button" data-k="done" class="ckDone">تمام</button>
+      <div class="ckTopActions">
+        <button type="button" data-k="clear" class="ckClear">پاک</button>
+        <button type="button" data-k="done" class="ckDone">تمام</button>
+      </div>
     </div>
     <div class="ckGrid">
       <button type="button" data-k="1">1</button>
@@ -629,8 +636,21 @@ function ensureCustomKeypad(){
     const k=b.dataset.k;
 
     if(k==='done'){
+      customKeypadReplaceOnNextKey=false;
       customKeypadTarget.dispatchEvent(new Event('change',{bubbles:true}));
       closeCustomKeypad();
+      return;
+    }
+
+    if(k==='clear'){
+      customKeypadRaw='';
+      customKeypadReplaceOnNextKey=false;
+      customKeypadTarget.value='';
+      customKeypadTarget.dataset.editingBlank='1';
+      customKeypadTarget.dispatchEvent(new CustomEvent('input',{
+        bubbles:true,
+        detail:{fromCustomKeypad:true,cleared:true}
+      }));
       return;
     }
 
@@ -638,7 +658,20 @@ function ensureCustomKeypad(){
       || customKeypadTarget.id==='targetQtyInput'
       || customKeypadTarget.classList.contains('pickerQtyInput');
 
-    customKeypadRaw=appendKeypadDigit(customKeypadRaw,k,allowsDecimal);
+    // Existing value is treated as selected when keypad opens.
+    // First digit/decimal replaces it. First backspace clears it completely.
+    if(customKeypadReplaceOnNextKey){
+      if(k==='back'){
+        customKeypadRaw='';
+      }else if(k==='.'){
+        customKeypadRaw=allowsDecimal?'0.':'';
+      }else if(/^[0-9]$/.test(k)){
+        customKeypadRaw=k;
+      }
+      customKeypadReplaceOnNextKey=false;
+    }else{
+      customKeypadRaw=appendKeypadDigit(customKeypadRaw,k,allowsDecimal);
+    }
 
     let display=customKeypadRaw;
     if(customKeypadTarget.id==='total' || customKeypadTarget.id==='unitRate'){
@@ -650,7 +683,17 @@ function ensureCustomKeypad(){
     }
 
     customKeypadTarget.value=display;
-    customKeypadTarget.dispatchEvent(new Event('input',{bubbles:true}));
+
+    if(display===''){
+      customKeypadTarget.dataset.editingBlank='1';
+    }else{
+      delete customKeypadTarget.dataset.editingBlank;
+    }
+
+    customKeypadTarget.dispatchEvent(new CustomEvent('input',{
+      bubbles:true,
+      detail:{fromCustomKeypad:true,cleared:display===''}
+    }));
   });
 
   return kp;
@@ -658,7 +701,9 @@ function ensureCustomKeypad(){
 
 function openCustomKeypad(el){
   customKeypadTarget=el;
+  customKeypadEditingFieldId=el.id||null;
   customKeypadRaw=normalizeDigits(el.value||'');
+  customKeypadReplaceOnNextKey=customKeypadRaw.length>0;
   // Keep a canonical raw number: no grouping separators, no spaces.
   if(el.id==='total' || el.id==='unitRate'){
     customKeypadRaw=customKeypadRaw.replace(/\./g,'');
@@ -919,7 +964,7 @@ function noteUserGoldEdit(changedId){
   // choose one deterministic companion so the result is never ambiguous.
   if(goldCalcAuthorities.length===1){
     const companion=defaultCompanionFor(changedId,vals);
-    if(companion && companion!==changedId){
+    if(companion && companion!==changedId && !goldCalcAuthorities.includes(companion)){
       goldCalcAuthorities.unshift(companion);
     }
   }
@@ -1014,7 +1059,7 @@ function installGoldLinkedFields(){
     if(!el || el.dataset.goldLinkedReady==='1')return;
     el.dataset.goldLinkedReady='1';
 
-    el.addEventListener('input',()=>{
+    el.addEventListener('input',(ev)=>{
       if(goldCalcLock)return;
 
       if(id==='total' || id==='unitRate'){
@@ -1025,7 +1070,17 @@ function installGoldLinkedFields(){
 
       try{el.setSelectionRange(el.value.length,el.value.length)}catch(_){}
 
-      // This event is triggered by the user's keypad/buttons.
+      const blank=el.value.trim()==='';
+      if(blank){
+        // User is deliberately clearing this field to enter a replacement.
+        // Remove it from authorities and DO NOT regenerate it from the other two.
+        goldCalcAuthorities=goldCalcAuthorities.filter(x=>x!==id);
+        el.dataset.editingBlank='1';
+        setGoldCalcStatus(`«${authorityLabel(id)}» پاک شد؛ عدد جدید را وارد کن.`,'');
+        return;
+      }
+
+      delete el.dataset.editingBlank;
       recalcGoldLinkedFields(id,true);
     });
 
@@ -1033,6 +1088,7 @@ function installGoldLinkedFields(){
     // It only re-runs the current two-authority equation.
     el.addEventListener('change',()=>{
       if(goldCalcLock)return;
+      if(el.value.trim()==='' || el.dataset.editingBlank==='1')return;
       recalcGoldFromAuthorities();
     });
   });
