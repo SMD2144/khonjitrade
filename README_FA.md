@@ -336,3 +336,15 @@ v1.7.3 MAIN ADVICE OVERRIDE FIX
 - X گرم بخر سبز و X گرم بفروش قرمز.
 - MutationObserver محافظ اضافه شد تا هیچ رندر قدیمی نتواند متن را برگرداند.
 - محاسبات و storage بدون تغییر.
+
+
+v1.7.4 PWA UPDATE FIX
+- مشکل ماندن Home Screen PWA روی نسخه قدیمی رفع شد.
+- Service Worker جدید skipWaiting و clients.claim دارد.
+- کش‌های نسخه‌های قدیمی در activate پاک می‌شوند.
+- App shell و JS/CSS/manifest به صورت network-first با cache:no-store گرفته می‌شوند.
+- updateViaCache:none فعال است.
+- در هر اجرای اپ reg.update() انجام می‌شود.
+- بعد از فعال‌شدن SW جدید، اپ فقط یک بار controlled reload می‌شود.
+- manifest start_url نسخه‌دار شد: index.html?v=174
+- منطق معاملات، محاسبات، پوشش، ارز و storage بدون تغییر.

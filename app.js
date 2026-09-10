@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.7.3';
+const BUILD_VERSION='1.7.4';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -1804,7 +1804,7 @@ themeBtn.onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';save();set
 setTheme();show('dashboard');
 
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+// v1.7.4 old SW registration disabled:   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }
 
 
@@ -1837,3 +1837,71 @@ window.addEventListener('orientationchange',()=>{
   setTimeout(applyDashboardPriorityLayout,80);
   setTimeout(applyDashboardPriorityLayout,350);
 });
+
+
+const PWA_SHELL_VERSION='1.7.4';
+
+async function installPwaUpdateManagerV174(){
+  if(!('serviceWorker' in navigator))return;
+
+  try{
+    const reg=await navigator.serviceWorker.register('./sw.js?v=174',{
+      scope:'./',
+      updateViaCache:'none'
+    });
+
+    // Force a fresh SW check every app launch.
+    try{ await reg.update(); }catch(_){}
+
+    const requestActivation=worker=>{
+      if(worker)worker.postMessage({type:'SKIP_WAITING'});
+    };
+
+    if(reg.waiting)requestActivation(reg.waiting);
+
+    reg.addEventListener('updatefound',()=>{
+      const worker=reg.installing;
+      if(!worker)return;
+      worker.addEventListener('statechange',()=>{
+        if(worker.state==='installed' && navigator.serviceWorker.controller){
+          requestActivation(worker);
+        }
+      });
+    });
+
+    navigator.serviceWorker.addEventListener('message',event=>{
+      if(event.data?.type==='KHONJI_SW_ACTIVATED'){
+        const target=event.data.version;
+        const seen=sessionStorage.getItem('khonji_sw_seen');
+        if(target && target!==seen){
+          sessionStorage.setItem('khonji_sw_seen',target);
+          // One controlled reload only, avoiding loops.
+          location.replace('./index.html?v=174');
+        }
+      }
+    });
+
+    let reloading=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(reloading)return;
+      reloading=true;
+      setTimeout(()=>location.replace('./index.html?v=174'),50);
+    });
+
+  }catch(err){
+    console.warn('PWA update manager:',err);
+  }
+}
+installPwaUpdateManagerV174();
+
+
+function markStandaloneVersionV174(){
+  const standalone =
+    window.matchMedia?.('(display-mode: standalone)').matches ||
+    window.navigator.standalone===true;
+  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.7.4');
+  if(badge && standalone){
+    badge.title='PWA standalone • shell 1.7.4';
+  }
+}
+document.addEventListener('DOMContentLoaded',markStandaloneVersionV174);
