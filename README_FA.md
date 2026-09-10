@@ -327,3 +327,12 @@ v1.7.2 TOTAL GOLD+COIN ADVICE
 - متن توضیحی اصلی سفید/خنثی باقی می‌ماند.
 - محاسبات، پوشش، ارز، کیپد و storage بدون تغییر.
 - storage key unchanged: khonji_pwa_v1
+
+
+v1.7.3 MAIN ADVICE OVERRIDE FIX
+- تمام writerهای قدیمی mainAdvice غیرفعال شدند.
+- فقط renderTotalGoldCoinAdvice مسئول متن بالانس کل است.
+- متن نهایی: «برای بالانس طلا و سکه سر هم، X گرم بخر/بفروش».
+- X گرم بخر سبز و X گرم بفروش قرمز.
+- MutationObserver محافظ اضافه شد تا هیچ رندر قدیمی نتواند متن را برگرداند.
+- محاسبات و storage بدون تغییر.

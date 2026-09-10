@@ -2002,3 +2002,18 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
 #mainAdvice.adviceBalancedV172 .adviceActionV172{
   color:var(--muted) !important;
 }
+
+
+/* ===== v1.7.3 main advice final override ===== */
+.dashboardStatsColV164 #mainAdvice .advicePrefixV172{
+  color:var(--text) !important;
+}
+.dashboardStatsColV164 #mainAdvice.adviceSellV172 .adviceActionV172{
+  color:var(--red) !important;
+}
+.dashboardStatsColV164 #mainAdvice.adviceBuyV172 .adviceActionV172{
+  color:var(--green) !important;
+}
+.dashboardStatsColV164 #mainAdvice.adviceBalancedV172 .adviceActionV172{
+  color:var(--muted) !important;
+}

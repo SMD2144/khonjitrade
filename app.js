@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.7.2';
+const BUILD_VERSION='1.7.3';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -924,6 +924,24 @@ function renderTotalGoldCoinAdvice(){
   el.classList.add(cls);
 }
 
+
+function installMainAdviceGuardV173(){
+  const el=document.getElementById('mainAdvice');
+  if(!el || el.dataset.adviceGuard==='1')return;
+  el.dataset.adviceGuard='1';
+
+  let busy=false;
+  const obs=new MutationObserver(()=>{
+    if(busy)return;
+    busy=true;
+    requestAnimationFrame(()=>{
+      renderTotalGoldCoinAdvice();
+      busy=false;
+    });
+  });
+  obs.observe(el,{childList:true,characterData:true,subtree:true});
+}
+
 function renderDashboard(){
   setView(cloneTpl('dashboardTpl'));
   const today=state.trades.filter(isToday);
@@ -936,7 +954,7 @@ function renderDashboard(){
   gb.textContent=signed(bal);
   gb.classList.remove('balancePositive','balanceNegative','balanceZero');
   gb.classList.add(Math.abs(bal)<1e-9?'balanceZero':bal>0?'balancePositive':'balanceNegative');
-  document.getElementById('mainAdvice').textContent=bal>0?`برای بالانس ${fmt(bal)} گرم بفروش`:bal<0?`برای بالانس ${fmt(bal)} گرم بخر`:'بالانس طلا صفر است';
+// v1.7.3 legacy mainAdvice writer disabled:   document.getElementById('mainAdvice').textContent=bal>0?`برای بالانس ${fmt(bal)} گرم بفروش`:bal<0?`برای بالانس ${fmt(bal)} گرم بخر`:'بالانس طلا صفر است';
   const unnamed=today.filter(t=>!t.party).length;
   document.getElementById('todaySummary').innerHTML=`تعداد معاملات امروز: <b>${fmt(today.length,0)}</b><br>ثبت‌های بدون طرف حساب: <b>${fmt(unnamed,0)}</b><br>طلای وزنی: <b>${signed(rawGold())} گرم</b>`;
 
@@ -1013,7 +1031,10 @@ function renderDashboard(){
 
   requestAnimationFrame(applyBottomUiV171);
 
+  renderTotalGoldCoinAdvice();
   requestAnimationFrame(renderTotalGoldCoinAdvice);
+
+  installMainAdviceGuardV173();
 }
 
 
