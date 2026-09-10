@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
-  <link rel="stylesheet" href="styles.css?v=170"/>
+  <link rel="stylesheet" href="styles.css?v=171"/>
   <title>دفتر معاملات طلا</title>
 
 <style id="dashboardCritical165">
@@ -140,6 +140,13 @@
 }
 </style>
 
+
+<style id="bottomUiCritical171">
+#view{padding-bottom:calc(112px + env(safe-area-inset-bottom)) !important}
+.navProV171{z-index:4500 !important}
+.dashboardBottomV171{margin-bottom:20px !important}
+</style>
+
 </head>
 <body>
 <div id="app">
@@ -149,16 +156,16 @@
       <p>ثبت سریع، دفتر روزانه و بالانس</p>
     </div>
     <button id="themeBtn" class="iconBtn">◐</button>
-  <div id="appVersionBadge" class="versionBadge">v1.7.0</div></header>
+  <div id="appVersionBadge" class="versionBadge">v1.7.1</div></header>
 
   <main id="view"></main>
 
-  <nav class="bottomNav">
-    <button data-view="dashboard">داشبورد</button>
-    <button data-view="report">گزارش</button>
-    <button data-view="entry" class="primaryNav">ثبت سریع</button>
-    <button data-view="ledger">دفتر امروز</button>
-    <button data-view="settings">بیشتر</button>
+  <nav class="bottomNav navProV171">
+    <button data-view="dashboard"><span class="navIcon">⌂</span><span class="navLabel">داشبورد</span></button>
+    <button data-view="report"><span class="navIcon">▤</span><span class="navLabel">گزارش</span></button>
+    <button data-view="entry" class="primaryNav"><span class="navIcon navQuickIcon">＋</span><span class="navLabel">ثبت سریع</span></button>
+    <button data-view="ledger"><span class="navIcon">≡</span><span class="navLabel">دفتر امروز</span></button>
+    <button data-view="settings"><span class="navIcon">•••</span><span class="navLabel">بیشتر</span></button>
   </nav>
 </div>
 
@@ -206,14 +213,20 @@
       </section>
     </section>
 
-    <section class="dashboardBottomV164">
-      <div>
-        <div class="sectionTitle sideTitle">خلاصه امروز</div>
-        <section class="panel sidePanel" id="todaySummary"></section>
+    <section class="dashboardBottomV164 dashboardBottomV171">
+      <div class="bottomCardWrapV171">
+        <div class="bottomCardHeadV171">
+          <div class="sectionTitle sideTitle">خلاصه امروز</div>
+          <button type="button" class="miniActionV171" data-open-summary>جزئیات</button>
+        </div>
+        <section class="panel sidePanel summaryCardV171" id="todaySummary"></section>
       </div>
-      <div>
-        <div class="sectionTitle sideTitle">آخرین معاملات</div>
-        <section class="panel recentMini" id="recentMini"></section>
+      <div class="bottomCardWrapV171">
+        <div class="bottomCardHeadV171">
+          <div class="sectionTitle sideTitle">آخرین معاملات</div>
+          <button type="button" class="miniActionV171" data-open-ledger>مشاهده همه</button>
+        </div>
+        <section class="panel recentMini recentCardV171" id="recentMini"></section>
       </div>
     </section>
 
@@ -345,7 +358,7 @@
   </section>
 </template>
 
-<script src="app.js?v=170"></script>
+<script src="app.js?v=171"></script>
 
 <div id="fxBalanceModal" class="fxModal hidden" aria-hidden="true">
   <div class="fxModalBackdrop" data-fx-close="1"></div>

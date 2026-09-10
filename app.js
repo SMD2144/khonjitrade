@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.7.0';
+const BUILD_VERSION='1.7.1';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -627,6 +627,8 @@ function show(view){
   if(view==='ledger')renderLedger();
   if(view==='report')renderReport();
   if(view==='settings')renderSettings();
+
+  requestAnimationFrame(applyBottomUiV171);
 }
 function cloneTpl(id){return document.getElementById(id).content.cloneNode(true)}
 function setView(node){const v=document.getElementById('view');v.innerHTML='';v.append(node);window.scrollTo({top:0,behavior:'instant'})}
@@ -859,6 +861,43 @@ document.addEventListener('click',e=>{
   if(e.target.closest('[data-fx-close="1"]'))closeFxBalanceModal();
 });
 
+
+function applyBottomUiV171(){
+  const nav=document.querySelector('.bottomNav, .navProV171');
+  if(nav)nav.classList.add('navProV171');
+
+  // Mark active nav item based on current view text/data when possible.
+  const buttons=nav ? [...nav.querySelectorAll('button')] : [];
+  buttons.forEach(b=>b.classList.remove('navActiveV171'));
+
+  const viewName=String(currentView||'').toLowerCase();
+  for(const b of buttons){
+    const txt=b.textContent||'';
+    const hit =
+      (viewName.includes('dashboard') && txt.includes('داشبورد')) ||
+      (viewName.includes('report') && txt.includes('گزارش')) ||
+      (viewName.includes('entry') && txt.includes('ثبت سریع')) ||
+      (viewName.includes('ledger') && txt.includes('دفتر امروز')) ||
+      (viewName.includes('settings') && txt.includes('بیشتر'));
+    if(hit)b.classList.add('navActiveV171');
+  }
+
+  // Dashboard mini-actions
+  document.querySelectorAll('[data-open-ledger]').forEach(btn=>{
+    btn.onclick=()=>show('ledger');
+  });
+  document.querySelectorAll('[data-open-summary]').forEach(btn=>{
+    btn.onclick=()=>show('report');
+  });
+
+  // Make recent list easier to scan: max 3 visible rows if more exist.
+  const recent=document.getElementById('recentMini');
+  if(recent){
+    const children=[...recent.children];
+    children.forEach((el,i)=>el.classList.toggle('recentHiddenV171',i>=3));
+  }
+}
+
 function renderDashboard(){
   setView(cloneTpl('dashboardTpl'));
   const today=state.trades.filter(isToday);
@@ -945,6 +984,8 @@ function renderDashboard(){
   requestAnimationFrame(applyDashboardPriorityLayout);
 
   requestAnimationFrame(renderFxBalanceStatus);
+
+  requestAnimationFrame(applyBottomUiV171);
 }
 
 

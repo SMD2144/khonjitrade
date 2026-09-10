@@ -1,9 +1,9 @@
-const CACHE='khonji-pwa-v1.7.0-atomic-settlement';
+const CACHE='khonji-pwa-v1.7.1-bottom-ui';
 const CORE=[
   './',
-  './index.html?v=170',
-  './styles.css?v=170',
-  './app.js?v=170',
+  './index.html?v=171',
+  './styles.css?v=171',
+  './app.js?v=171',
   './manifest.json',
   './icon-192.svg',
   './icon-512.svg'
