@@ -1588,3 +1588,124 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
     font-size:20px;
   }
 }
+
+
+/* ===== v1.6.8 FX Balance Details ===== */
+.fxBalanceRow{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:inherit;
+  cursor:pointer;
+  font:inherit;
+  text-align:inherit;
+}
+.fxBalanceRow strong{
+  white-space:normal;
+  text-align:left;
+  line-height:1.45;
+}
+.fxRowChevron{
+  font-size:22px;
+  color:var(--muted);
+  margin-right:6px;
+}
+#sideFx.needSell{color:var(--red)!important}
+#sideFx.needBuy{color:var(--green)!important}
+
+.fxModal{
+  position:fixed;
+  inset:0;
+  z-index:7000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.fxModal.hidden{display:none}
+.fxModalBackdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.62);
+}
+.fxModalCard{
+  position:relative;
+  z-index:1;
+  width:min(620px,94vw);
+  max-height:min(78vh,720px);
+  overflow:auto;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:22px;
+  box-shadow:0 24px 70px rgba(0,0,0,.45);
+  padding:18px;
+  direction:rtl;
+}
+.fxModalHead{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+.fxModalHead h3{
+  margin:0 0 6px;
+  font-size:22px;
+}
+.fxModalHead p{
+  margin:0;
+  color:var(--gold);
+  font-weight:800;
+  line-height:1.6;
+}
+.fxCloseBtn{
+  flex:0 0 auto;
+  width:42px;
+  height:42px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:var(--surface2);
+  color:var(--text);
+  font-size:28px;
+  line-height:1;
+}
+.fxBalanceDetails{
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+}
+.fxDetailRow{
+  display:grid;
+  grid-template-columns:90px 1fr;
+  gap:12px;
+  align-items:center;
+  min-height:58px;
+  padding:10px 14px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--surface2);
+}
+.fxCode{
+  direction:ltr;
+  text-align:left;
+  font-weight:900;
+  font-size:18px;
+}
+.fxAction{
+  text-align:right;
+  font-weight:900;
+  font-size:17px;
+}
+.fxDetailRow.sell .fxAction{color:var(--red)}
+.fxDetailRow.buy .fxAction{color:var(--green)}
+.fxDetailRow.balanced .fxAction{color:var(--muted)}
+.fxEmpty{
+  padding:20px;
+  text-align:center;
+  color:var(--muted);
+}
+
+@media (max-width:699px){
+  .fxModalCard{width:96vw;padding:14px}
+  .fxDetailRow{grid-template-columns:72px 1fr}
+}

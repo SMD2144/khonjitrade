@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
-  <link rel="stylesheet" href="styles.css?v=167"/>
+  <link rel="stylesheet" href="styles.css?v=168"/>
   <title>دفتر معاملات طلا</title>
 
 <style id="dashboardCritical165">
@@ -149,7 +149,7 @@
       <p>ثبت سریع، دفتر روزانه و بالانس</p>
     </div>
     <button id="themeBtn" class="iconBtn">◐</button>
-  <div id="appVersionBadge" class="versionBadge">v1.6.7</div></header>
+  <div id="appVersionBadge" class="versionBadge">v1.6.8</div></header>
 
   <main id="view"></main>
 
@@ -173,7 +173,7 @@
           <div class="sideRow settlementRow"><span>تمام سکه</span><strong id="sideFullCoin">بالانس</strong><div id="actFullCoin"></div></div>
           <div class="sideRow settlementRow"><span>نیم سکه</span><strong id="sideHalfCoin">بالانس</strong><div id="actHalfCoin"></div></div>
           <div class="sideRow settlementRow"><span>ربع سکه</span><strong id="sideQuarterCoin">بالانس</strong><div id="actQuarterCoin"></div></div>
-          <div class="sideRow"><span>بالانس ارزی</span><strong id="sideFx">0 $</strong></div>
+          <button type="button" class="sideRow fxBalanceRow" id="fxBalanceRow"><span>بالانس ارزی</span><strong id="sideFx">بالانس</strong><span class="fxRowChevron">‹</span></button>
         </section>
       </div>
 
@@ -345,6 +345,21 @@
   </section>
 </template>
 
-<script src="app.js?v=167"></script>
+<script src="app.js?v=168"></script>
+
+<div id="fxBalanceModal" class="fxModal hidden" aria-hidden="true">
+  <div class="fxModalBackdrop" data-fx-close="1"></div>
+  <section class="fxModalCard" role="dialog" aria-modal="true" aria-labelledby="fxBalanceTitle">
+    <div class="fxModalHead">
+      <button type="button" class="fxCloseBtn" data-fx-close="1">×</button>
+      <div>
+        <h3 id="fxBalanceTitle">جزئیات بالانس ارزی</h3>
+        <p id="fxBalanceSummary">—</p>
+      </div>
+    </div>
+    <div id="fxBalanceDetails" class="fxBalanceDetails"></div>
+  </section>
+</div>
+
 </body>
 </html>

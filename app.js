@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.6.7';
+const BUILD_VERSION='1.6.8';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -551,6 +551,164 @@ function applyDashboardPriorityLayout(){
   }
 }
 
+
+function roundWhole(n){
+  return Number.isFinite(Number(n)) ? Math.round(Number(n)) : 0;
+}
+
+function fxTradeCode(t){
+  const a=String(t?.asset||t?.currency||'').trim().toUpperCase();
+  if(a==='USD'||a==='AED'||a==='EUR'||a==='QAR'||a==='TRY'||a==='OMR') return a;
+  return a;
+}
+
+function isFxTrade(t){
+  const a=fxTradeCode(t);
+  return a && !['GOLD','COIN','آبشده','طلای متفرقه','تمام سکه','نیم سکه','ربع سکه'].includes(a);
+}
+
+function fxSignedBalanceByCurrency(){
+  const out={};
+  const list=(state?.trades||[]);
+  for(const t of list){
+    if(!isFxTrade(t)) continue;
+    const code=fxTradeCode(t);
+    const qty=Number(t.qty||0);
+    if(!Number.isFinite(qty) || qty===0) continue;
+    // BUY means inventory/balance increases; SELL means decreases.
+    const side=String(t.side||t.type||'').toUpperCase();
+    const sign = (side==='BUY'||side==='خرید') ? 1 : -1;
+    out[code]=(out[code]||0) + sign*qty;
+  }
+  return out;
+}
+
+function getFxSettingNumber(id, fallback){
+  const el=document.getElementById(id);
+  const fromEl=el ? parseLooseNumber(el.value) : NaN;
+  if(Number.isFinite(fromEl)&&fromEl>0)return fromEl;
+
+  const s=state?.settings||{};
+  const map={
+    usdAed:['usdAed','usd_aed'],
+    eurUsd:['eurUsd','eur_usd'],
+    usdQar:['usdQar','usd_qar'],
+    usdTry:['usdTry','usd_try'],
+    omrAed:['omrAed','omr_aed']
+  };
+  for(const k of (map[id]||[])){
+    const v=Number(s[k]);
+    if(Number.isFinite(v)&&v>0)return v;
+  }
+  return fallback;
+}
+
+function fxToUsd(code, amount){
+  const v=Number(amount)||0;
+  const usdAed=getFxSettingNumber('usdAed',3.67);
+  const eurUsd=getFxSettingNumber('eurUsd',1.15);
+  const usdQar=getFxSettingNumber('usdQar',3.67);
+  const usdTry=getFxSettingNumber('usdTry',48);
+  const omrAed=getFxSettingNumber('omrAed',9.5);
+
+  switch(String(code).toUpperCase()){
+    case 'USD': return v;
+    case 'AED': return v/usdAed;
+    case 'EUR': return v*eurUsd;
+    case 'QAR': return v/usdQar;
+    case 'TRY': return v/usdTry;
+    case 'OMR': return (v*omrAed)/usdAed;
+    default:
+      // For custom currencies we can still show their native balance,
+      // but exclude from USD total if no conversion factor exists.
+      return 0;
+  }
+}
+
+function fxActionText(balance, unit=''){
+  const n=roundWhole(Math.abs(balance));
+  if(n===0)return 'بالانس';
+  return `${formatGroupedNumber(n,0)} ${unit} ${balance>0?'بفروش':'بخر'}`.trim();
+}
+
+function getFxBalanceSnapshot(){
+  const by=fxSignedBalanceByCurrency();
+  let usdEquivalent=0;
+  for(const [code,bal] of Object.entries(by)){
+    usdEquivalent += fxToUsd(code, bal);
+  }
+  return {by, usdEquivalent};
+}
+
+function renderFxBalanceStatus(){
+  const el=document.getElementById('sideFx');
+  if(!el)return;
+  const {usdEquivalent}=getFxBalanceSnapshot();
+  const rounded=roundWhole(usdEquivalent);
+
+  if(rounded===0){
+    el.textContent='بالانس';
+    el.className='';
+  }else{
+    el.textContent=`معادل ${formatGroupedNumber(Math.abs(rounded),0)} دلار ${rounded>0?'بفروش':'بخر'}`;
+    el.className=rounded>0?'needSell':'needBuy';
+  }
+
+  const row=document.getElementById('fxBalanceRow');
+  if(row){
+    row.onclick=openFxBalanceModal;
+  }
+}
+
+function openFxBalanceModal(){
+  const modal=document.getElementById('fxBalanceModal');
+  const details=document.getElementById('fxBalanceDetails');
+  const summary=document.getElementById('fxBalanceSummary');
+  if(!modal||!details||!summary)return;
+
+  const {by,usdEquivalent}=getFxBalanceSnapshot();
+  const roundedUsd=roundWhole(usdEquivalent);
+
+  summary.textContent = roundedUsd===0
+    ? 'بالانس کل ارزها: بالانس'
+    : `بالانس کل ارزها: معادل ${formatGroupedNumber(Math.abs(roundedUsd),0)} دلار ${roundedUsd>0?'بفروش':'بخر'}`;
+
+  const order=['USD','AED','EUR','QAR','TRY','OMR'];
+  const codes=[...order.filter(c=>Object.prototype.hasOwnProperty.call(by,c)),
+               ...Object.keys(by).filter(c=>!order.includes(c)).sort()];
+
+  if(codes.length===0){
+    details.innerHTML='<div class="fxEmpty">هنوز معامله ارزی ثبت نشده است.</div>';
+  }else{
+    details.innerHTML=codes.map(code=>{
+      const bal=Number(by[code]||0);
+      const rounded=roundWhole(bal);
+      const cls=rounded>0?'sell':rounded<0?'buy':'balanced';
+      const action=rounded===0
+        ? 'بالانس'
+        : `${formatGroupedNumber(Math.abs(rounded),0)} ${code} ${rounded>0?'بفروش':'بخر'}`;
+      return `<div class="fxDetailRow ${cls}">
+        <div class="fxCode">${code}</div>
+        <div class="fxAction">${action}</div>
+      </div>`;
+    }).join('');
+  }
+
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden','false');
+}
+
+function closeFxBalanceModal(){
+  const modal=document.getElementById('fxBalanceModal');
+  if(!modal)return;
+  modal.classList.add('hidden');
+  modal.setAttribute('aria-hidden','true');
+}
+
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-fx-close="1"]'))closeFxBalanceModal();
+});
+
 function renderDashboard(){
   setView(cloneTpl('dashboardTpl'));
   const today=state.trades.filter(isToday);
@@ -635,6 +793,8 @@ function renderDashboard(){
   document.querySelector('[data-action="open-balance"]').onclick=()=>show('report');
 
   requestAnimationFrame(applyDashboardPriorityLayout);
+
+  requestAnimationFrame(renderFxBalanceStatus);
 }
 
 
