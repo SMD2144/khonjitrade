@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.6.2';
+const BUILD_VERSION='1.6.3';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -469,6 +469,49 @@ function show(view){
 function cloneTpl(id){return document.getElementById(id).content.cloneNode(true)}
 function setView(node){const v=document.getElementById('view');v.innerHTML='';v.append(node);window.scrollTo({top:0,behavior:'instant'})}
 
+
+function applyDashboardPriorityLayout(){
+  const buy=document.getElementById('buyToday');
+  const sell=document.getElementById('sellToday');
+  const bal=document.getElementById('goldBalance');
+
+  const buyCard=buy?.closest('.statCard, .summaryCard, .card, article, div');
+  const sellCard=sell?.closest('.statCard, .summaryCard, .card, article, div');
+  const balCard=bal?.closest('.statCard, .summaryCard, .card, article, div');
+
+  [buyCard,sellCard,balCard].forEach((el,i)=>{
+    if(!el)return;
+    el.classList.add('priorityStatCard');
+    el.dataset.priorityStat = i===0?'buy':i===1?'sell':'balance';
+  });
+
+  if(buyCard && sellCard && balCard){
+    const parent=buyCard.parentElement;
+    if(parent===sellCard.parentElement && parent===balCard.parentElement){
+      parent.classList.add('priorityStatsGrid');
+    }
+  }
+
+  const sideRaw=document.getElementById('sideRawGold');
+  const statusPanel=sideRaw?.closest('.sidePanel, .statusPanel, .card, section, article, div');
+  if(statusPanel){
+    statusPanel.classList.add('priorityStatusPanel');
+  }
+
+  // Find common dashboard area containing stats + status, then mark it for two-column placement.
+  if(statusPanel && buyCard){
+    let statsPanel=buyCard.parentElement;
+    let a=statusPanel.parentElement;
+    let b=statsPanel?.parentElement;
+    if(a && b && a===b){
+      a.classList.add('priorityDashboardTop');
+    }else{
+      const common=statusPanel.closest('.dashboardGrid, .dashboardMain, .dashboardContent, main, #view');
+      if(common)common.classList.add('priorityDashboardTopRoot');
+    }
+  }
+}
+
 function renderDashboard(){
   setView(cloneTpl('dashboardTpl'));
   const today=state.trades.filter(isToday);
@@ -551,6 +594,8 @@ function renderDashboard(){
   document.querySelector('[data-action="open-buy"]').onclick=()=>{ledgerFilter='BUY';show('ledger')};
   document.querySelector('[data-action="open-sell"]').onclick=()=>{ledgerFilter='SELL';show('ledger')};
   document.querySelector('[data-action="open-balance"]').onclick=()=>show('report');
+
+  requestAnimationFrame(applyDashboardPriorityLayout);
 }
 
 

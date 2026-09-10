@@ -1240,3 +1240,90 @@ body.customKeypadOpen .pickerQtyInput:focus{
 input[data-custom-keypad="1"][data-editing-blank="1"]{
   box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 65%,transparent) inset !important;
 }
+
+
+/* ===== v1.6.3 Dashboard Priority Layout ===== */
+
+/* Three KPI cards: 2 columns, balance spans full width below */
+.priorityStatsGrid{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:12px !important;
+  align-items:stretch;
+}
+.priorityStatsGrid > .priorityStatCard{
+  width:auto !important;
+  min-width:0 !important;
+  margin:0 !important;
+}
+.priorityStatsGrid > .priorityStatCard[data-priority-stat="balance"]{
+  grid-column:1 / -1 !important;
+}
+
+/* Make the live-status panel visually dominant and always top-left */
+.priorityStatusPanel{
+  order:-10 !important;
+  align-self:start !important;
+  position:relative;
+  z-index:2;
+}
+
+/* If the existing dashboard already has a two-column top wrapper */
+.priorityDashboardTop{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  grid-template-areas:"status stats" !important;
+  gap:16px !important;
+  align-items:start !important;
+}
+.priorityDashboardTop > .priorityStatusPanel{
+  grid-area:status !important;
+}
+.priorityDashboardTop > .priorityStatsGrid{
+  grid-area:stats !important;
+}
+
+/* iPad portrait: keep both important blocks at the very top, side-by-side */
+@media (min-width:700px) and (max-width:1100px) and (orientation:portrait){
+  .priorityDashboardTop{
+    grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr) !important;
+    grid-template-areas:"status stats" !important;
+    gap:14px !important;
+  }
+
+  .priorityStatusPanel{
+    margin-top:0 !important;
+  }
+
+  .priorityStatsGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:10px !important;
+  }
+
+  .priorityStatsGrid > .priorityStatCard[data-priority-stat="balance"]{
+    grid-column:1 / -1 !important;
+  }
+}
+
+/* Landscape: status stays left and KPIs stay right, compact */
+@media (min-width:900px) and (orientation:landscape){
+  .priorityDashboardTop{
+    grid-template-columns:minmax(320px,.9fr) minmax(420px,1.1fr) !important;
+    grid-template-areas:"status stats" !important;
+  }
+}
+
+/* Phone fallback: status first, KPIs below */
+@media (max-width:699px){
+  .priorityDashboardTop{
+    display:flex !important;
+    flex-direction:column !important;
+  }
+  .priorityStatusPanel{
+    order:-10 !important;
+  }
+  .priorityStatsGrid{
+    order:-9 !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+}
