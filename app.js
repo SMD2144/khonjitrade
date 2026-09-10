@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.5.4';
+const BUILD_VERSION='1.5.5';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -275,7 +275,7 @@ function openSmartCoverPicker(targetName){
         <span>مقدار موردنظر برای پوشش</span>
         <div class="targetStepper">
           <button data-target-op="minus">−</button>
-          <input id="targetQtyInput" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" dir="ltr">
+          <input id="targetQtyInput" type="text" inputmode="none" pattern="[0-9۰-۹.,]*" dir="ltr" data-custom-keypad="1">
           <button data-target-op="plus">+</button>
         </div>
         <small id="targetEqText"></small>
@@ -337,7 +337,7 @@ function openSmartCoverPicker(targetName){
         </div>
         <div class="pickerStepper">
           <button data-op="minus">−</button>
-          <input class="pickerQtyInput" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" dir="ltr"
+          <input class="pickerQtyInput" type="text" inputmode="none" pattern="[0-9۰-۹.,]*" dir="ltr" data-custom-keypad="1"
                  value="${s.qty ? Number(s.qty.toFixed(isGold?3:0)) : 0}">
           <button data-op="plus">+</button>
         </div>
@@ -555,19 +555,130 @@ function renderDashboard(){
 
 
 
+
+let customKeypadTarget=null;
+
+function closeCustomKeypad(){
+  const kp=document.getElementById('customNumericKeypad');
+  if(kp)kp.classList.remove('show');
+  customKeypadTarget=null;
+  document.body.classList.remove('customKeypadOpen');
+}
+
+function ensureCustomKeypad(){
+  let kp=document.getElementById('customNumericKeypad');
+  if(kp)return kp;
+
+  kp=document.createElement('div');
+  kp.id='customNumericKeypad';
+  kp.className='customNumericKeypad';
+  kp.innerHTML=`
+    <div class="ckHandle"></div>
+    <div class="ckTop">
+      <strong>ورود عدد</strong>
+      <button type="button" data-k="done">تمام</button>
+    </div>
+    <div class="ckGrid">
+      <button type="button" data-k="1">1</button>
+      <button type="button" data-k="2">2</button>
+      <button type="button" data-k="3">3</button>
+      <button type="button" data-k="4">4</button>
+      <button type="button" data-k="5">5</button>
+      <button type="button" data-k="6">6</button>
+      <button type="button" data-k="7">7</button>
+      <button type="button" data-k="8">8</button>
+      <button type="button" data-k="9">9</button>
+      <button type="button" data-k=".">.</button>
+      <button type="button" data-k="0">0</button>
+      <button type="button" data-k="back" class="ckBack">⌫</button>
+    </div>
+  `;
+  document.body.appendChild(kp);
+
+  kp.addEventListener('pointerdown',e=>e.preventDefault());
+
+  kp.addEventListener('click',e=>{
+    const b=e.target.closest('button[data-k]');
+    if(!b || !customKeypadTarget)return;
+    const k=b.dataset.k;
+
+    if(k==='done'){
+      customKeypadTarget.dispatchEvent(new Event('change',{bubbles:true}));
+      closeCustomKeypad();
+      return;
+    }
+
+    let v=customKeypadTarget.value||'';
+
+    if(k==='back'){
+      v=v.slice(0,-1);
+    }else if(k==='.'){
+      if(!v.includes('.')) v = v ? v+'.' : '0.';
+    }else{
+      v+=k;
+    }
+
+    customKeypadTarget.value=v;
+    customKeypadTarget.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+
+  return kp;
+}
+
+function openCustomKeypad(el){
+  customKeypadTarget=el;
+  const kp=ensureCustomKeypad();
+  kp.classList.add('show');
+  document.body.classList.add('customKeypadOpen');
+
+  try{el.focus({preventScroll:true})}catch(_){el.focus()}
+  setTimeout(()=>{
+    const r=el.closest('.panel')?.getBoundingClientRect() || el.getBoundingClientRect();
+    const kpH=kp.getBoundingClientRect().height||360;
+    const safeBottom=window.innerHeight-kpH-18;
+    if(r.bottom>safeBottom){
+      window.scrollBy({top:r.bottom-safeBottom+20,behavior:'smooth'});
+    }
+  },60);
+}
+
+function installCustomNumericKeypad(scope=document){
+  scope.querySelectorAll('input[data-custom-keypad="1"], .pickerQtyInput').forEach(el=>{
+    if(el.dataset.ckReady==='1')return;
+    el.dataset.ckReady='1';
+    el.setAttribute('inputmode','none');
+    el.setAttribute('readonly','readonly');
+
+    const activate=(ev)=>{
+      ev.preventDefault();
+      el.removeAttribute('readonly');
+      openCustomKeypad(el);
+      // Reapply readonly after focus so iPad keyboard doesn't appear.
+      setTimeout(()=>el.setAttribute('readonly','readonly'),0);
+    };
+
+    el.addEventListener('pointerup',activate);
+    el.addEventListener('click',activate);
+  });
+}
+
+document.addEventListener('pointerdown',e=>{
+  const kp=e.target.closest('#customNumericKeypad');
+  const numeric=e.target.closest('input[data-custom-keypad="1"], .pickerQtyInput');
+  if(!kp && !numeric && customKeypadTarget){
+    closeCustomKeypad();
+  }
+});
+
 function applyKeyboardHints(scope=document){
   scope.querySelectorAll('input,textarea').forEach(el=>{
     const id=el.id||'';
     const numericIds=['qty','total','unitRate','usdAed','eurUsd','usdQar','usdTry','omrAed','targetQtyInput'];
 
     if(numericIds.includes(id) || el.classList.contains('pickerQtyInput')){
-      if(id==='total' || id==='unitRate'){
-        el.setAttribute('inputmode','numeric');
-        el.setAttribute('pattern','[0-9۰-۹,]*');
-      }else{
-        el.setAttribute('inputmode','decimal');
-        el.setAttribute('pattern','[0-9۰-۹.,]*');
-      }
+      el.setAttribute('inputmode','none');
+      el.setAttribute('data-custom-keypad','1');
+      el.setAttribute('pattern','[0-9۰-۹.,]*');
       el.setAttribute('dir','ltr');
     }else if(id==='party' || id==='note' || id==='customCurrencyName'){
       el.setAttribute('inputmode','text');
@@ -823,3 +934,8 @@ document.addEventListener('DOMContentLoaded',()=>applyKeyboardHints(document));
 const keyboardHintObserver=new MutationObserver(()=>applyKeyboardHints(document));
 const keyboardHintView=document.getElementById('view');
 if(keyboardHintView)keyboardHintObserver.observe(keyboardHintView,{childList:true,subtree:true});
+
+document.addEventListener('DOMContentLoaded',()=>installCustomNumericKeypad(document));
+const customKeypadObserver=new MutationObserver(()=>installCustomNumericKeypad(document));
+const customKeypadView=document.getElementById('view');
+if(customKeypadView)customKeypadObserver.observe(customKeypadView,{childList:true,subtree:true});
