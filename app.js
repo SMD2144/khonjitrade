@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.5.7';
+const BUILD_VERSION='1.5.8';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -795,6 +795,7 @@ if(window.visualViewport){
 
 let goldCalcLastEdited=null;
 let goldCalcLock=false;
+let goldCalcPreviousEdited=null;
 
 function setGoldCalcStatus(message,type=''){
   const el=document.getElementById('goldCalcStatus');
@@ -813,78 +814,84 @@ function setFieldNumericValue(id,value,decimals=3){
   el.value=formatGroupedNumber(value,decimals);
 }
 
+function goldValues(){
+  const q=parseLooseNumber(document.getElementById('qty')?.value);
+  const t=parseLooseNumber(document.getElementById('total')?.value);
+  const r=parseLooseNumber(document.getElementById('unitRate')?.value);
+  return {q,t,r,
+    hasQ:Number.isFinite(q)&&q>0,
+    hasT:Number.isFinite(t)&&t>0,
+    hasR:Number.isFinite(r)&&r>0
+  };
+}
+
 function recalcGoldLinkedFields(changedId){
-  if(goldCalcLock)return;
+  if(goldCalcLock || entryType!=='GOLD')return;
+
   const qtyEl=document.getElementById('qty');
   const totalEl=document.getElementById('total');
   const rateEl=document.getElementById('unitRate');
-  if(!qtyEl || !totalEl || !rateEl)return;
+  if(!qtyEl||!totalEl||!rateEl)return;
 
-  const asset=currentAsset;
-  if(asset!=='آبشده' && asset!=='طلای متفرقه'){
-    setGoldCalcStatus('');
-    return;
-  }
-
+  goldCalcPreviousEdited=goldCalcLastEdited;
   goldCalcLastEdited=changedId;
 
-  const q=parseLooseNumber(qtyEl.value);
-  const t=parseLooseNumber(totalEl.value);
-  const r=parseLooseNumber(rateEl.value);
-
-  const hasQ=Number.isFinite(q) && q>0;
-  const hasT=Number.isFinite(t) && t>0;
-  const hasR=Number.isFinite(r) && r>0;
+  let {q,t,r,hasQ,hasT,hasR}=goldValues();
 
   goldCalcLock=true;
   try{
     if(changedId==='qty'){
+      // Changing weight: preserve rate if available; otherwise preserve total.
       if(hasQ && hasR){
         setFieldNumericValue('total',q*r,0);
-        setGoldCalcStatus('مبلغ کل از وزن × نرخ واحد محاسبه شد.','ok');
+        setGoldCalcStatus('مبلغ کل = وزن × نرخ واحد','ok');
       }else if(hasQ && hasT){
         setFieldNumericValue('unitRate',t/q,0);
-        setGoldCalcStatus('نرخ واحد از مبلغ کل ÷ وزن محاسبه شد.','ok');
-      }else if(!hasQ && (hasT||hasR)){
-        setGoldCalcStatus('برای محاسبه، یک مقدار معتبر برای وزن وارد کن.','warn');
+        setGoldCalcStatus('نرخ واحد = مبلغ کل ÷ وزن','ok');
       }else{
-        setGoldCalcStatus('');
+        setGoldCalcStatus(hasQ?'برای محاسبه نرخ واحد یا مبلغ کل را وارد کن.':'وزن باید بیشتر از صفر باشد.',hasQ?'':'warn');
       }
     }else if(changedId==='total'){
+      // Changing total: preserve rate if available; otherwise preserve weight.
       if(hasT && hasR){
         setFieldNumericValue('qty',t/r,3);
-        setGoldCalcStatus('وزن از مبلغ کل ÷ نرخ واحد محاسبه شد.','ok');
+        setGoldCalcStatus('وزن = مبلغ کل ÷ نرخ واحد','ok');
       }else if(hasT && hasQ){
         setFieldNumericValue('unitRate',t/q,0);
-        setGoldCalcStatus('نرخ واحد از مبلغ کل ÷ وزن محاسبه شد.','ok');
-      }else if(!hasT && (hasQ||hasR)){
-        setGoldCalcStatus('مبلغ کل باید بیشتر از صفر باشد.','warn');
+        setGoldCalcStatus('نرخ واحد = مبلغ کل ÷ وزن','ok');
       }else{
-        setGoldCalcStatus('');
+        setGoldCalcStatus(hasT?'برای محاسبه نرخ واحد یا وزن را وارد کن.':'مبلغ کل باید بیشتر از صفر باشد.',hasT?'':'warn');
       }
     }else if(changedId==='unitRate'){
-      if(hasR && hasT){
+      // Changing rate:
+      // If total was edited most recently, preserve total and recalc weight.
+      // Otherwise preserve weight and recalc total.
+      if(hasR && hasT && goldCalcPreviousEdited==='total'){
         setFieldNumericValue('qty',t/r,3);
-        setGoldCalcStatus('وزن از مبلغ کل ÷ نرخ واحد محاسبه شد.','ok');
+        setGoldCalcStatus('وزن = مبلغ کل ÷ نرخ واحد','ok');
       }else if(hasR && hasQ){
         setFieldNumericValue('total',q*r,0);
-        setGoldCalcStatus('مبلغ کل از وزن × نرخ واحد محاسبه شد.','ok');
-      }else if(!hasR && (hasQ||hasT)){
-        setGoldCalcStatus('نرخ واحد باید بیشتر از صفر باشد.','warn');
+        setGoldCalcStatus('مبلغ کل = وزن × نرخ واحد','ok');
+      }else if(hasR && hasT){
+        setFieldNumericValue('qty',t/r,3);
+        setGoldCalcStatus('وزن = مبلغ کل ÷ نرخ واحد','ok');
       }else{
-        setGoldCalcStatus('');
+        setGoldCalcStatus(hasR?'برای محاسبه وزن یا مبلغ کل را وارد کن.':'نرخ واحد باید بیشتر از صفر باشد.',hasR?'':'warn');
       }
     }
 
-    // Sanity warning if all three are present but inconsistent by > 0.5%
-    const q2=parseLooseNumber(qtyEl.value);
-    const t2=parseLooseNumber(totalEl.value);
-    const r2=parseLooseNumber(rateEl.value);
-    if(Number.isFinite(q2)&&q2>0&&Number.isFinite(t2)&&t2>0&&Number.isFinite(r2)&&r2>0){
-      const expected=q2*r2;
-      const rel=Math.abs(expected-t2)/Math.max(t2,1);
-      if(rel>0.005){
-        setGoldCalcStatus('سه مقدار با هم سازگار نیستند؛ آخرین ورودی مبنای اصلاح قرار گرفت.','warn');
+    // Always refresh display formatting after a valid calculation.
+    const v=goldValues();
+    if(v.hasQ) qtyEl.value=formatGroupedNumber(v.q,3);
+    if(v.hasT) totalEl.value=formatGroupedNumber(v.t,0);
+    if(v.hasR) rateEl.value=formatGroupedNumber(v.r,0);
+
+    const v2=goldValues();
+    if(v2.hasQ&&v2.hasT&&v2.hasR){
+      const expected=v2.q*v2.r;
+      const rel=Math.abs(expected-v2.t)/Math.max(v2.t,1);
+      if(rel>0.001){
+        setGoldCalcStatus('اعداد با هم سازگار نیستند؛ آخرین ورودی مبنای محاسبه قرار گرفت.','warn');
       }
     }
   }finally{
@@ -901,17 +908,11 @@ function installGoldLinkedFields(){
 
     el.addEventListener('input',()=>{
       if(id==='total' || id==='unitRate'){
-        const pos=el.selectionStart;
-        const before=el.value;
-        const maxDec = id==='unitRate' ? 0 : 0;
-        el.value=formatGroupedInputValue(before,false,maxDec);
-        try{el.setSelectionRange(el.value.length,el.value.length)}catch(_){}
-      }else if(id==='qty'){
-        // qty may have decimal grams
-        const before=el.value;
-        el.value=formatGroupedInputValue(before,true,3);
-        try{el.setSelectionRange(el.value.length,el.value.length)}catch(_){}
+        el.value=formatGroupedInputValue(el.value,false,0);
+      }else{
+        el.value=formatGroupedInputValue(el.value,true,3);
       }
+      try{el.setSelectionRange(el.value.length,el.value.length)}catch(_){}
       recalcGoldLinkedFields(id);
     });
 
@@ -964,18 +965,14 @@ function renderEntry(){
   });
 
   const step=type==='COIN'?1:type==='GOLD'?1:100;
-  minusBtn.onclick=()=>{qty.value=Math.max(0,(parseFloat(qty.value)||0)-step);qty.dispatchEvent(new Event('input'))};
-  plusBtn.onclick=()=>{qty.value=(parseFloat(qty.value)||0)+step;qty.dispatchEvent(new Event('input'))};
+  minusBtn.onclick=()=>{qty.value=Math.max(0,(parseLooseNumber(qty.value)||0)-step);qty.dispatchEvent(new Event('input',{bubbles:true}))};
+  plusBtn.onclick=()=>{qty.value=(parseLooseNumber(qty.value)||0)+step;qty.dispatchEvent(new Event('input',{bubbles:true}))};
 
   const chipVals=type==='COIN'?[1,2,5]:type==='GOLD'?[100,250,500]:[1000,5000,10000];
   chips.innerHTML=chipVals.map(x=>`<button data-chip="${x}">${new Intl.NumberFormat('fa-IR').format(x)}${type==='COIN'?' عدد':type==='GOLD'?' گرم':''}</button>`).join('');
-  chips.querySelectorAll('button').forEach(b=>b.onclick=()=>{qty.value=b.dataset.chip;qty.dispatchEvent(new Event('input'))});
+  chips.querySelectorAll('button').forEach(b=>b.onclick=()=>{qty.value=b.dataset.chip;qty.dispatchEvent(new Event('input',{bubbles:true}))});
 
-  [total,unitRate].forEach(el=>el.addEventListener('input',()=>{
-    if(type!=='GOLD'||qty.value.trim()){autoWeight.classList.add('hidden');return}
-    const t=Number(total.value.replaceAll(',','')),r=Number(unitRate.value.replaceAll(',',''));
-    if(t>0&&r>0){autoWeight.textContent=`وزن محاسبه‌شده: ${fmt(t/r)} گرم`;autoWeight.classList.remove('hidden')}else autoWeight.classList.add('hidden')
-  }));
+
 
   [qty,total,unitRate,party,note].forEach(el=>{
     const reveal=()=>{
@@ -1002,26 +999,27 @@ function renderEntry(){
     const t=state.trades.find(x=>x.id===editId);
     if(t){
       entryBuy=t.side==='BUY'; selectedCoin=t.asset; selectedAsset=t.asset;
-      qty.value=t.qty; total.value=t.total||''; unitRate.value=t.rate||'';party.value=t.party||'';note.value=t.note||'';
+      qty.value=formatGroupedNumber(t.qty,3); total.value=t.total?formatGroupedNumber(t.total,0):''; unitRate.value=t.rate?formatGroupedNumber(t.rate,0):'';party.value=t.party||'';note.value=t.note||'';
       normalCoin.checked=t.coinType==='NORMAL';refreshMode();
     }
   }
 
   installEditableFocusFix(document);
+  autoWeight?.classList.add('hidden');
   installGoldLinkedFields();
 
   saveTrade.onclick=()=>{
     const asset=type==='COIN'?selectedCoin:selectedAsset;
-    let q=Number(qty.value||0),auto=false;
+    let q=parseLooseNumber(qty.value)||0,auto=false;
     if(!q&&type==='GOLD'){
-      const t=Number(total.value.replaceAll(',','')||0),r=Number(unitRate.value.replaceAll(',','')||0);
+      const t=parseLooseNumber(total.value)||0,r=parseLooseNumber(unitRate.value)||0;
       if(t>0&&r>0){q=t/r;auto=true}
     }
     if(!(q>0)){alert('وزن / تعداد / مقدار را وارد کن');return}
     const trade={
       id:editId||Date.now(),
       side:entryBuy?'BUY':'SELL',
-      asset,qty:q,total:Number(total.value.replaceAll(',','')||0),rate:Number(unitRate.value.replaceAll(',','')||0),
+      asset,qty:q,total:parseLooseNumber(total.value)||0,rate:parseLooseNumber(unitRate.value)||0,
       party:party.value.trim(),note:note.value.trim(),coinType:normalCoin.checked?'NORMAL':'BANK',autoQty:auto,ts:editId?(state.trades.find(x=>x.id===editId)?.ts||Date.now()):Date.now()
     };
     if(editId) state.trades=state.trades.map(x=>x.id===editId?trade:x); else state.trades.unshift(trade);

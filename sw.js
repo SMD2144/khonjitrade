@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.5.7-linked-gold-fields';
+const CACHE='khonji-pwa-v1.5.8-linked-fix';
 const CORE=[
   './',
   './index.html?v=112',

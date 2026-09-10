@@ -1184,3 +1184,16 @@ body.customKeypadOpen .pickerQtyInput:focus{
   font-variant-numeric:tabular-nums;
   letter-spacing:.2px;
 }
+
+
+/* ===== v1.5.8 Linked calculation bugfix ===== */
+.goldCalcStatus{
+  margin-top:10px;
+  font-weight:800;
+}
+.goldCalcStatus.ok{
+  color:var(--gold);
+}
+.goldCalcStatus.warn{
+  color:var(--red);
+}
