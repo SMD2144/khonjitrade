@@ -1,10 +1,10 @@
-const CACHE='khonji-pwa-v1.7.6-force-repair';
+const CACHE='khonji-pwa-v1.7.7-advice-runtime-fix';
 const CORE=[
   './',
-  './index.html?v=176',
-  './styles.css?v=176',
-  './app.js?v=176',
-  './manifest.json?v=176',
+  './index.html?v=177',
+  './styles.css?v=177',
+  './app.js?v=177',
+  './manifest.json?v=177',
   './icon-192.svg',
   './icon-512.svg'
 ];
@@ -24,7 +24,7 @@ self.addEventListener('activate', event => {
 
     const clients=await self.clients.matchAll({type:'window', includeUncontrolled:true});
     for(const client of clients){
-      client.postMessage({type:'KHONJI_SW_ACTIVATED',version:'1.7.6'});
+      client.postMessage({type:'KHONJI_SW_ACTIVATED',version:'1.7.7'});
     }
   })());
 });
@@ -41,10 +41,10 @@ self.addEventListener('fetch', event => {
       try{
         const fresh=await fetch(req,{cache:'no-store'});
         const cache=await caches.open(CACHE);
-        cache.put('./index.html?v=176', fresh.clone()).catch(()=>{});
+        cache.put('./index.html?v=177', fresh.clone()).catch(()=>{});
         return fresh;
       }catch(_){
-        return (await caches.match('./index.html?v=176')) || (await caches.match('./'));
+        return (await caches.match('./index.html?v=177')) || (await caches.match('./'));
       }
     })());
     return;

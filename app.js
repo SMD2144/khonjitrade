@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.7.6';
+const BUILD_VERSION='1.7.7';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -903,7 +903,7 @@ function renderTotalGoldCoinAdvice(){
   const el=document.getElementById('mainAdvice');
   if(!el)return;
 
-  const bal=Number(goldBalance18()||0);
+  const bal=Number(calcGoldBalance()||0);
   const abs=Math.abs(bal);
 
   el.className='advice';
@@ -913,15 +913,15 @@ function renderTotalGoldCoinAdvice(){
 
   if(abs<0.0005){
     el.innerHTML=
-      '<span class="advicePrefixV175">طلا و سکه سر هم</span>'+
-      '<strong class="adviceActionV175 adviceBalancedV175">بالانس است</strong>';
+      '<span class="advicePrefixV177">طلا و سکه سر هم</span>'+
+      '<strong class="adviceActionV177 adviceBalancedV177">بالانس است</strong>';
     return;
   }
 
   const isSell=bal>0;
   el.innerHTML=
-    '<span class="advicePrefixV175">برای بالانس طلا و سکه سر هم</span>'+
-    `<strong class="adviceActionV175 ${isSell?'adviceSellV175':'adviceBuyV175'}">`+
+    '<span class="advicePrefixV177">برای بالانس طلا و سکه سر هم</span>'+
+    `<strong class="adviceActionV177 ${isSell?'adviceSellV177':'adviceBuyV177'}">`+
     `${formatGroupedNumber(abs,3)} گرم ${isSell?'بفروش':'بخر'}</strong>`;
 }
 
@@ -1823,13 +1823,13 @@ window.addEventListener('orientationchange',()=>{
 });
 
 
-const PWA_SHELL_VERSION='1.7.6';
+const PWA_SHELL_VERSION='1.7.7';
 
 async function installPwaUpdateManagerV174(){
   if(!('serviceWorker' in navigator))return;
 
   try{
-    const reg=await navigator.serviceWorker.register('./sw.js?v=176',{
+    const reg=await navigator.serviceWorker.register('./sw.js?v=177',{
       scope:'./',
       updateViaCache:'none'
     });
@@ -1860,7 +1860,7 @@ async function installPwaUpdateManagerV174(){
         if(target && target!==seen){
           sessionStorage.setItem('khonji_sw_seen',target);
           // One controlled reload only, avoiding loops.
-          location.replace('./index.html?v=176');
+          location.replace('./index.html?v=177');
         }
       }
     });
@@ -1869,7 +1869,7 @@ async function installPwaUpdateManagerV174(){
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
       if(reloading)return;
       reloading=true;
-      setTimeout(()=>location.replace('./index.html?v=176'),50);
+      setTimeout(()=>location.replace('./index.html?v=177'),50);
     });
 
   }catch(err){
@@ -1883,22 +1883,22 @@ function markStandaloneVersionV174(){
   const standalone =
     window.matchMedia?.('(display-mode: standalone)').matches ||
     window.navigator.standalone===true;
-  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.7.6');
+  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.7.7');
   if(badge && standalone){
-    badge.title='PWA standalone • shell 1.7.6';
+    badge.title='PWA standalone • shell 1.7.7';
   }
 }
 document.addEventListener('DOMContentLoaded',markStandaloneVersionV174);
 
 
 
-function ensurePwaRepairButtonV176(){
-  if(document.getElementById('pwaRepairBtnV176'))return;
+function ensurePwaRepairButtonV177(){
+  if(document.getElementById('pwaRepairBtnV177'))return;
 
   const btn=document.createElement('button');
   btn.type='button';
-  btn.id='pwaRepairBtnV176';
-  btn.className='pwaRepairBtnV176';
+  btn.id='pwaRepairBtnV177';
+  btn.className='pwaRepairBtnV177';
   btn.textContent='به‌روزرسانی اجباری';
   btn.title='پاک‌کردن کش برنامه و دریافت نسخه جدید بدون حذف معاملات';
 
@@ -1937,12 +1937,12 @@ function ensurePwaRepairButtonV176(){
 
       // 3) Mark repair attempt in sessionStorage only.
       try{
-        sessionStorage.setItem('khonji_force_repair_v176','1');
+        sessionStorage.setItem('khonji_force_repair_v177','1');
       }catch(_){}
 
       // 4) Reload a versioned URL with a one-time cache-buster.
       const u=new URL('./index.html', location.href);
-      u.searchParams.set('v','176');
+      u.searchParams.set('v','177');
       u.searchParams.set('repair',Date.now().toString());
       location.replace(u.toString());
     }catch(err){
@@ -1956,5 +1956,5 @@ function ensurePwaRepairButtonV176(){
   document.body.appendChild(btn);
 }
 
-document.addEventListener('DOMContentLoaded',ensurePwaRepairButtonV176);
-setTimeout(ensurePwaRepairButtonV176,500);
+document.addEventListener('DOMContentLoaded',ensurePwaRepairButtonV177);
+setTimeout(ensurePwaRepairButtonV177,500);

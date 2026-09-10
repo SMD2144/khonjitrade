@@ -1,7 +1,7 @@
 {
   "name": "دفتر معاملات طلا",
   "short_name": "دفتر طلا",
-  "start_url": "./index.html?v=176",
+  "start_url": "./index.html?v=177",
   "display": "standalone",
   "background_color": "#0f1115",
   "theme_color": "#0f1115",
