@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.6.9';
+const BUILD_VERSION='1.7.0';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -8,6 +8,8 @@ const DEFAULT={
   theme:'dark'
 };
 let state=load();
+const brokenSettlementGroups=settlementIntegrityCheck();
+if(brokenSettlementGroups.length)console.warn('Broken settlement groups detected; left untouched for safety:',brokenSettlementGroups);
 let currentView='dashboard';
 let entryType='GOLD', entryBuy=true, selectedCoin='تمام سکه', editId=null, ledgerFilter='ALL';
 
@@ -107,6 +109,166 @@ function action(balance,unit,name=''){
 }
 function settlementConfirm(message){
   return confirm(message + '\n\nاین ثبت به عنوان «تسویه داخلی» ذخیره می‌شود.');
+}
+
+
+function settlementGroupLegs(groupId, fallbackId=null){
+  if(groupId){
+    return state.trades.filter(t=>t.kind==='SETTLEMENT' && t.groupId===groupId);
+  }
+  return fallbackId==null ? [] : state.trades.filter(t=>t.kind==='SETTLEMENT' && t.id===fallbackId);
+}
+
+function settlementGroupDescriptor(legs){
+  const target=legs.find(x=>x.leg==='TARGET');
+  const sources=legs.filter(x=>x.leg==='SOURCE');
+  if(!target || !sources.length){
+    return {
+      title:'پوشش داخلی',
+      target,
+      sources,
+      text:legs.map(x=>`${x.side==='BUY'?'خرید':'فروش'} ${coverLabel(x.asset,x.qty)}`).join(' + ')
+    };
+  }
+  return {
+    title:`پوشش ${assetDef(target.asset)?.label||target.asset}`,
+    target,
+    sources,
+    text:`${coverLabel(target.asset,target.qty)} با ${sources.map(s=>coverLabel(s.asset,s.qty)).join(' + ')}`
+  };
+}
+
+function balanceWithoutSettlementGroup(asset, groupId, fallbackId=null){
+  return state.trades.reduce((sum,t)=>{
+    if(t.kind==='SETTLEMENT' && (
+      (groupId && t.groupId===groupId) ||
+      (!groupId && fallbackId!=null && t.id===fallbackId)
+    )) return sum;
+
+    if(asset==='آبشده'){
+      return sum + ((t.asset==='آبشده'||t.asset==='طلای متفرقه') ? sign(t)*Number(t.qty||0) : 0);
+    }
+    return sum + (t.asset===asset ? sign(t)*Number(t.qty||0) : 0);
+  },0);
+}
+
+function settlementUndoChanges(legs){
+  const deltaByAsset={};
+
+  for(const leg of legs){
+    let asset=leg.asset;
+    if(asset==='طلای متفرقه') asset='آبشده';
+
+    // Current balance contains sign(leg)*qty.
+    // Deleting the leg applies the exact inverse.
+    const undoDelta = -sign(leg)*Number(leg.qty||0);
+    deltaByAsset[asset]=(deltaByAsset[asset]||0)+undoDelta;
+  }
+
+  return Object.entries(deltaByAsset)
+    .filter(([,delta])=>Math.abs(delta)>1e-9)
+    .map(([asset,delta])=>({asset,delta}));
+}
+
+function settlementAssetReadable(asset){
+  if(asset==='آبشده')return 'طلای وزنی';
+  return asset;
+}
+
+function settlementUndoLine(change, groupId, fallbackId=null){
+  const {asset,delta}=change;
+  const after=balanceWithoutSettlementGroup(asset,groupId,fallbackId);
+  const d=assetDef(asset);
+  const qtyText = d?.integer
+    ? `${formatGroupedNumber(Math.abs(Math.round(delta)),0)} عدد`
+    : `${formatGroupedNumber(Math.abs(delta),3)} گرم`;
+
+  let movement;
+  if(delta>0){
+    movement=`${qtyText} ${settlementAssetReadable(asset)} به بالانس اضافه می‌شود`;
+  }else{
+    movement=`${qtyText} ${settlementAssetReadable(asset)} از بالانس کم می‌شود`;
+  }
+
+  let resulting;
+  if(Math.abs(after)<1e-9){
+    resulting='بعد از حذف: بالانس';
+  }else{
+    const afterQty=d?.integer
+      ? `${formatGroupedNumber(Math.abs(Math.round(after)),0)} عدد`
+      : `${formatGroupedNumber(Math.abs(after),3)} گرم`;
+    resulting=`بعد از حذف: ${afterQty} ${after>0?'بفروش':'بخر'}`;
+  }
+
+  return `• ${movement} — ${resulting}`;
+}
+
+function settlementUndoPreview(groupId, fallbackId=null){
+  const legs=settlementGroupLegs(groupId,fallbackId);
+  const desc=settlementGroupDescriptor(legs);
+  const changes=settlementUndoChanges(legs);
+  const lines=changes.map(c=>settlementUndoLine(c,groupId,fallbackId));
+
+  return {
+    legs,
+    desc,
+    changes,
+    text:lines.join('\n')
+  };
+}
+
+function deleteSettlementGroupWithDoubleConfirm(groupId, fallbackId=null, afterDelete=null){
+  const preview=settlementUndoPreview(groupId,fallbackId);
+  if(!preview.legs.length){
+    alert('رکوردهای این پوشش پیدا نشدند؛ هیچ تغییری انجام نشد.');
+    return false;
+  }
+
+  const first = confirm(
+    `این پوشش داخلی حذف شود؟\n\n${preview.desc.text}\n\nاین کار تمام اجزای همین پوشش را با هم حذف می‌کند.`
+  );
+  if(!first)return false;
+
+  const secondMessage =
+    `تأیید نهایی حذف پوشش\n\n` +
+    `با حذف این مورد، اثر پوشش کامل برگردانده می‌شود:\n\n` +
+    `${preview.text || '• تغییر قابل محاسبه‌ای پیدا نشد.'}\n\n` +
+    `مطمئنی کل این پوشش حذف و بالانس‌ها به حالت قبل برگردند؟`;
+
+  const second = confirm(secondMessage);
+  if(!second)return false;
+
+  const ids=new Set(preview.legs.map(x=>x.id));
+  const beforeCount=state.trades.length;
+  state.trades=state.trades.filter(t=>!ids.has(t.id));
+
+  if(state.trades.length===beforeCount){
+    alert('حذف انجام نشد؛ هیچ رکوردی تغییر نکرد.');
+    return false;
+  }
+
+  save();
+  if(typeof afterDelete==='function')afterDelete();
+  return true;
+}
+
+function settlementIntegrityCheck(){
+  const groups=new Map();
+  state.trades.filter(t=>t.kind==='SETTLEMENT').forEach(t=>{
+    const key=t.groupId||`LEGACY-${t.id}`;
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(t);
+  });
+
+  const broken=[];
+  for(const [groupId,legs] of groups){
+    const targets=legs.filter(x=>x.leg==='TARGET');
+    const sources=legs.filter(x=>x.leg==='SOURCE');
+    if(targets.length!==1 || sources.length<1){
+      broken.push({groupId,targets:targets.length,sources:sources.length});
+    }
+  }
+  return broken;
 }
 
 function addSmartSettlement({targetName,targetQty,sources}){
@@ -1445,15 +1607,52 @@ function renderLedger(){
   if(ledgerFilter==='BUY')data=data.filter(t=>t.side==='BUY');
   if(ledgerFilter==='SELL')data=data.filter(t=>t.side==='SELL');
   if(ledgerFilter==='UNNAMED')data=data.filter(t=>!t.party);
+
+  // One visible card per settlement group. Never expose individual synthetic legs
+  // as independently deletable accounting entries.
+  const seenSettlementGroups=new Set();
+  data=data.filter(t=>{
+    if(t.kind!=='SETTLEMENT')return true;
+    const key=t.groupId||`LEGACY-${t.id}`;
+    if(seenSettlementGroups.has(key))return false;
+    seenSettlementGroups.add(key);
+    return true;
+  });
+
   ledgerList.innerHTML=data.length?'':'<div class="panel">ثبت امروز پیدا نشد.</div>';
   data.forEach(t=>{
     const el=document.createElement('article');el.className='tradeCard';
     const settlementBadge=t.kind==='SETTLEMENT' ? '<span class="settlementBadge">تسویه داخلی</span>' : '';
-    el.innerHTML=`<div class="top"><b>${t.asset} • ${fmt(t.qty)} ${settlementBadge}</b><span class="pill ${t.side==='BUY'?'buy':'sell'}">${t.side==='BUY'?'خرید':'فروش'}</span></div>
-      <div class="meta">${t.party?`طرف حساب: ${t.party}`:'بدون طرف حساب'}${t.total?`<br>مبلغ: ${new Intl.NumberFormat('fa-IR').format(t.total)} تومان`:''}${t.rate?`<br>نرخ: ${new Intl.NumberFormat('fa-IR').format(t.rate)}`:''}${t.note?`<br>${t.note}`:''}</div>
-      <div class="actions"><button data-edit>ویرایش</button><button data-del>حذف</button></div>`;
-    el.querySelector('[data-edit]').onclick=()=>{editId=t.id;entryType=t.asset.includes('سکه')?'COIN':(t.asset==='آبشده'||t.asset==='طلای متفرقه')?'GOLD':t.asset==='دلار'?'USD':t.asset==='درهم'?'AED':t.asset==='یورو'?'EUR':'CUSTOM';show('entry')};
-    el.querySelector('[data-del]').onclick=()=>{if(confirm('این ثبت حذف شود؟')){state.trades=state.trades.filter(x=>x.id!==t.id);save();renderLedger()}};
+    const isSettlement=t.kind==='SETTLEMENT';
+    const settlementDesc=isSettlement
+      ? settlementGroupDescriptor(settlementGroupLegs(t.groupId,t.id))
+      : null;
+
+    el.innerHTML=`<div class="top"><b>${isSettlement ? settlementDesc.title : `${t.asset} • ${fmt(t.qty)}`} ${settlementBadge}</b><span class="pill ${t.side==='BUY'?'buy':'sell'}">${isSettlement?'پوشش':(t.side==='BUY'?'خرید':'فروش')}</span></div>
+      <div class="meta">${isSettlement
+        ? `${settlementDesc.text}<br><small>برای حذف، کل پوشش با تمام اجزایش با هم برگردانده می‌شود.</small>`
+        : `${t.party?`طرف حساب: ${t.party}`:'بدون طرف حساب'}${t.total?`<br>مبلغ: ${new Intl.NumberFormat('fa-IR').format(t.total)} تومان`:''}${t.rate?`<br>نرخ: ${new Intl.NumberFormat('fa-IR').format(t.rate)}`:''}${t.note?`<br>${t.note}`:''}`
+      }</div>
+      <div class="actions">${isSettlement?'':`<button data-edit>ویرایش</button>`}<button data-del>${isSettlement?'حذف پوشش':'حذف'}</button></div>`;
+
+    const editBtn=el.querySelector('[data-edit]');
+    if(editBtn){
+      editBtn.onclick=()=>{
+        editId=t.id;
+        entryType=t.asset.includes('سکه')?'COIN':(t.asset==='آبشده'||t.asset==='طلای متفرقه')?'GOLD':t.asset==='دلار'?'USD':t.asset==='درهم'?'AED':t.asset==='یورو'?'EUR':'CUSTOM';
+        show('entry');
+      };
+    }
+
+    el.querySelector('[data-del]').onclick=()=>{
+      if(isSettlement){
+        deleteSettlementGroupWithDoubleConfirm(t.groupId,t.id,renderLedger);
+      }else if(confirm('این ثبت حذف شود؟')){
+        state.trades=state.trades.filter(x=>x.id!==t.id);
+        save();
+        renderLedger();
+      }
+    };
     ledgerList.append(el);
   });
 }
@@ -1476,13 +1675,21 @@ function renderReport(){
     const sources=g.legs.filter(x=>x.leg==='SOURCE');
     if(!target||!sources.length)return '';
     const srcText=sources.map(x=>coverLabel(x.asset,x.qty)).join(' + ');
-    return `<article class="reportCard settlementCard">
+    return `<article class="reportCard settlementCard" data-settlement-group="${g.groupId||''}">
       <h3>پوشش داخلی</h3>
       <strong>${coverLabel(target.asset,target.qty)}</strong>
       <div class="action">با ${srcText}</div>
       <small>${new Date(g.ts).toLocaleString('fa-IR')}</small>
+      <button class="settlementDeleteBtn" data-delete-settlement="${g.groupId||''}">حذف پوشش</button>
     </article>`;
   }).join('') : '<div class="panel mutedBox">هنوز تسویه داخلی ثبت نشده</div>';
+
+  document.querySelectorAll('[data-delete-settlement]').forEach(btn=>{
+    btn.onclick=()=>{
+      const groupId=btn.dataset.deleteSettlement;
+      if(groupId)deleteSettlementGroupWithDoubleConfirm(groupId,null,renderReport);
+    };
+  });
 }
 
 function renderSettings(){

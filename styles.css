@@ -1740,3 +1740,23 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
   font-weight:700;
   color:var(--gold);
 }
+
+
+/* ===== v1.7.0 Atomic settlement deletion ===== */
+.settlementDeleteBtn{
+  margin-top:12px;
+  width:100%;
+  min-height:42px;
+  border:1px solid color-mix(in srgb,var(--red) 55%,var(--line));
+  border-radius:12px;
+  background:color-mix(in srgb,var(--red) 10%,var(--surface2));
+  color:var(--red);
+  font-weight:900;
+  font-size:14px;
+}
+.tradeCard .settlementBadge{
+  margin-inline-start:6px;
+}
+.tradeCard .meta small{
+  color:var(--gold);
+}
