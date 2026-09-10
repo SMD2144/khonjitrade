@@ -1520,3 +1520,71 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
     margin-top:-10px !important;
   }
 }
+
+
+/* ===== v1.6.7 Exact top-edge alignment ===== */
+.dashboardTopV164{
+  align-items:start !important;
+  margin-top:-10px !important;
+}
+
+.dashboardStatusColV164,
+.dashboardStatsColV164{
+  margin-top:0 !important;
+  padding-top:0 !important;
+  align-self:start !important;
+}
+
+.livePanelV164{
+  margin-top:0 !important;
+  padding-top:0 !important;
+  overflow:hidden;
+}
+
+.livePanelHeaderV167{
+  height:54px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  padding:0 16px;
+  border-bottom:1px solid var(--line);
+  font-size:22px;
+  line-height:1;
+  font-weight:900;
+  color:var(--text);
+  text-align:right;
+}
+
+.livePanelV164 .sideRow{
+  min-height:46px;
+}
+
+.dashboardStatsColV164 .statsGridV164{
+  margin-top:0 !important;
+  padding-top:0 !important;
+}
+
+/* خود ثبت سریع عمداً بدون تغییر */
+.quickSectionV164{
+  margin-top:18px !important;
+}
+
+@media (min-width:700px) and (orientation:portrait){
+  .dashboardTopV164{
+    margin-top:-12px !important;
+  }
+  .livePanelHeaderV167{
+    height:50px;
+    font-size:20px;
+  }
+}
+
+@media (min-width:900px) and (orientation:landscape){
+  .dashboardTopV164{
+    margin-top:-10px !important;
+  }
+  .livePanelHeaderV167{
+    height:48px;
+    font-size:20px;
+  }
+}
