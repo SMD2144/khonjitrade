@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.5.9';
+const BUILD_VERSION='1.6.0';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -571,6 +571,24 @@ function closeCustomKeypad(){
   document.body.classList.remove('customKeypadOpen');
 }
 
+function appendKeypadDigit(raw,key,allowsDecimal){
+  raw=String(raw??'');
+  if(key==='back')return raw.slice(0,-1);
+
+  if(key==='.'){
+    if(allowsDecimal && !raw.includes('.')){
+      return raw ? raw+'.' : '0.';
+    }
+    return raw;
+  }
+
+  if(/^[0-9]$/.test(key)){
+    if(raw==='0' && key!=='0' && !raw.includes('.'))return key;
+    return raw+key;
+  }
+  return raw;
+}
+
 function ensureCustomKeypad(){
   let kp=document.getElementById('customNumericKeypad');
   if(kp)return kp;
@@ -620,23 +638,7 @@ function ensureCustomKeypad(){
       || customKeypadTarget.id==='targetQtyInput'
       || customKeypadTarget.classList.contains('pickerQtyInput');
 
-    if(k==='back'){
-      customKeypadRaw=customKeypadRaw.slice(0,-1);
-    }else if(k==='.'){
-      if(allowsDecimal && !customKeypadRaw.includes('.')){
-        customKeypadRaw = customKeypadRaw ? customKeypadRaw+'.' : '0.';
-      }
-    }else{
-      // Append digit to RAW buffer. Never derive next value from formatted text.
-      // This is important for 0: 243 -> 2430 -> 24300 must remain exact.
-      if(/^[0-9]$/.test(k)){
-        if(customKeypadRaw==='0' && k!=='0' && !customKeypadRaw.includes('.')){
-          customKeypadRaw=k;
-        }else{
-          customKeypadRaw+=k;
-        }
-      }
-    }
+    customKeypadRaw=appendKeypadDigit(customKeypadRaw,k,allowsDecimal);
 
     let display=customKeypadRaw;
     if(customKeypadTarget.id==='total' || customKeypadTarget.id==='unitRate'){
@@ -657,6 +659,10 @@ function ensureCustomKeypad(){
 function openCustomKeypad(el){
   customKeypadTarget=el;
   customKeypadRaw=normalizeDigits(el.value||'');
+  // Keep a canonical raw number: no grouping separators, no spaces.
+  if(el.id==='total' || el.id==='unitRate'){
+    customKeypadRaw=customKeypadRaw.replace(/\./g,'');
+  }
   const kp=ensureCustomKeypad();
   const decimalBtn=kp.querySelector('button[data-k="."]');
   const allowsDecimal = el.id==='qty' || el.id==='targetQtyInput' || el.classList.contains('pickerQtyInput');
@@ -705,7 +711,20 @@ function formatGroupedNumber(v, maxDecimals=3){
   if(v===null || v===undefined || v==='')return '';
   const n=typeof v==='number'?v:parseLooseNumber(v);
   if(!Number.isFinite(n))return '';
-  const fixed=n.toFixed(maxDecimals).replace(/\.?0+$/,'');
+
+  // IMPORTANT:
+  // Never trim zeros from the integer part.
+  // 2430 must stay 2,430 and 24350000 must stay 24,350,000.
+  let fixed;
+  if(maxDecimals<=0){
+    fixed=Math.round(n).toString();
+  }else{
+    fixed=n.toFixed(maxDecimals);
+    if(fixed.includes('.')){
+      fixed=fixed.replace(/0+$/,'').replace(/\.$/,'');
+    }
+  }
+
   const [intPart,decPart]=fixed.split('.');
   const grouped=intPart.replace(/\B(?=(\d{3})+(?!\d))/g,',');
   return decPart!==undefined ? `${grouped}.${decPart}` : grouped;
@@ -732,14 +751,22 @@ function installCustomNumericKeypad(scope=document){
 
     const activate=(ev)=>{
       ev.preventDefault();
-      el.removeAttribute('readonly');
+      el.setAttribute('readonly','readonly');
       openCustomKeypad(el);
-      // Reapply readonly after focus so iPad keyboard doesn't appear.
-      setTimeout(()=>el.setAttribute('readonly','readonly'),0);
     };
 
-    el.addEventListener('pointerup',activate);
-    el.addEventListener('click',activate);
+    let lastPointerActivate=0;
+    el.addEventListener('pointerup',ev=>{
+      lastPointerActivate=Date.now();
+      activate(ev);
+    });
+    el.addEventListener('click',ev=>{
+      if(Date.now()-lastPointerActivate<500){
+        ev.preventDefault();
+        return;
+      }
+      activate(ev);
+    });
   });
 }
 
@@ -775,7 +802,11 @@ function installEditableFocusFix(scope=document){
   const editableSelector='input:not([type="checkbox"]):not([type="file"]):not([disabled]), textarea:not([disabled])';
 
   scope.querySelectorAll(editableSelector).forEach(el=>{
-    el.removeAttribute('readonly');
+    // Custom numeric keypad fields intentionally stay readonly so iPadOS
+    // does not summon its own keyboard.
+    if(el.dataset.customKeypad!=='1' && !el.classList.contains('pickerQtyInput')){
+      el.removeAttribute('readonly');
+    }
     el.style.pointerEvents='auto';
 
     if(el.dataset.nativeFocusReady==='1') return;
