@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
-  <link rel="stylesheet" href="styles.css?v=163"/>
+  <link rel="stylesheet" href="styles.css?v=164"/>
   <title>دفتر معاملات طلا</title>
 </head>
 <body>
@@ -20,7 +20,7 @@
       <p>ثبت سریع، دفتر روزانه و بالانس</p>
     </div>
     <button id="themeBtn" class="iconBtn">◐</button>
-  <div id="appVersionBadge" class="versionBadge">v1.6.3</div></header>
+  <div id="appVersionBadge" class="versionBadge">v1.6.4</div></header>
 
   <main id="view"></main>
 
@@ -34,49 +34,60 @@
 </div>
 
 <template id="dashboardTpl">
-  <section class="tabletDashboard">
-    <div class="tabletMain">
-      <section class="cards3">
-        <button class="metric buy" data-action="open-buy">
-          <span>خرید امروز</span><strong id="buyToday">0</strong><small>گرم ۱۸ عیار</small>
-        </button>
-        <button class="metric sell" data-action="open-sell">
-          <span>فروش امروز</span><strong id="sellToday">0</strong><small>گرم ۱۸ عیار</small>
-        </button>
-        <button class="metric gold" data-action="open-balance">
-          <span>بالانس کل ۱۸ عیار</span><strong id="goldBalance">0</strong><small>گرم</small>
-        </button>
-      </section>
+  <section class="dashboardV164">
 
-      <button class="advice" id="mainAdvice"></button>
+    <section class="dashboardTopV164">
+      <div class="dashboardStatusColV164">
+        <div class="sectionTitle sideTitle">وضعیت لحظه‌ای</div>
+        <section class="panel sidePanel livePanelV164">
+          <div class="sideRow settlementRow"><span>طلای وزنی</span><strong id="sideRawGold">0</strong><div id="actRawGold"></div></div>
+          <div class="sideRow settlementRow"><span>تمام سکه</span><strong id="sideFullCoin">بالانس</strong><div id="actFullCoin"></div></div>
+          <div class="sideRow settlementRow"><span>نیم سکه</span><strong id="sideHalfCoin">بالانس</strong><div id="actHalfCoin"></div></div>
+          <div class="sideRow settlementRow"><span>ربع سکه</span><strong id="sideQuarterCoin">بالانس</strong><div id="actQuarterCoin"></div></div>
+          <div class="sideRow"><span>بالانس ارزی</span><strong id="sideFx">0 $</strong></div>
+        </section>
+      </div>
 
+      <div class="dashboardStatsColV164">
+        <section class="cards3 statsGridV164">
+          <button class="metric buy" data-action="open-buy">
+            <span>خرید امروز</span><strong id="buyToday">0</strong><small>گرم ۱۸ عیار</small>
+          </button>
+          <button class="metric sell" data-action="open-sell">
+            <span>فروش امروز</span><strong id="sellToday">0</strong><small>گرم ۱۸ عیار</small>
+          </button>
+          <button class="metric gold balanceWideV164" data-action="open-balance">
+            <span>بالانس کل ۱۸ عیار</span><strong id="goldBalance">0</strong><small>گرم</small>
+          </button>
+        </section>
+
+        <button class="advice" id="mainAdvice"></button>
+      </div>
+    </section>
+
+    <section class="quickSectionV164">
       <div class="sectionTitle">ثبت سریع</div>
       <section class="quickGrid">
-    <button data-quick="GOLD"><b>▰</b><span>طلای آبشده</span><small>آبشده / متفرقه</small></button>
-    <button data-quick="COIN"><b>●</b><span>سکه</span><small>تمام / نیم / ربع</small></button>
-    <button data-quick="USD"><b>$</b><span>دلار</span><small>USD</small></button>
-    <button data-quick="AED"><b>د</b><span>درهم</span><small>AED</small></button>
-    <button data-quick="EUR"><b>€</b><span>یورو</span><small>EUR</small></button>
-    <button data-quick="CUSTOM"><b>＋</b><span>ارز جدید</span><small>افزودن / ثبت</small></button>
+        <button data-quick="GOLD"><b>▰</b><span>طلای آبشده</span><small>آبشده / متفرقه</small></button>
+        <button data-quick="COIN"><b>●</b><span>سکه</span><small>تمام / نیم / ربع</small></button>
+        <button data-quick="USD"><b>$</b><span>دلار</span><small>USD</small></button>
+        <button data-quick="AED"><b>د</b><span>درهم</span><small>AED</small></button>
+        <button data-quick="EUR"><b>€</b><span>یورو</span><small>EUR</small></button>
+        <button data-quick="CUSTOM"><b>＋</b><span>ارز جدید</span><small>افزودن / ثبت</small></button>
       </section>
-    </div>
+    </section>
 
-    <aside class="tabletSide">
-      <div class="sectionTitle sideTitle">وضعیت لحظه‌ای</div>
-      <section class="panel sidePanel">
-        <div class="sideRow settlementRow"><span>طلای وزنی</span><strong id="sideRawGold">0</strong><div id="actRawGold"></div></div>
-        <div class="sideRow settlementRow"><span>تمام سکه</span><strong id="sideFullCoin">بالانس</strong><div id="actFullCoin"></div></div>
-        <div class="sideRow settlementRow"><span>نیم سکه</span><strong id="sideHalfCoin">بالانس</strong><div id="actHalfCoin"></div></div>
-        <div class="sideRow settlementRow"><span>ربع سکه</span><strong id="sideQuarterCoin">بالانس</strong><div id="actQuarterCoin"></div></div>
-        <div class="sideRow"><span>بالانس ارزی</span><strong id="sideFx">0 $</strong></div>
-      </section>
+    <section class="dashboardBottomV164">
+      <div>
+        <div class="sectionTitle sideTitle">خلاصه امروز</div>
+        <section class="panel sidePanel" id="todaySummary"></section>
+      </div>
+      <div>
+        <div class="sectionTitle sideTitle">آخرین معاملات</div>
+        <section class="panel recentMini" id="recentMini"></section>
+      </div>
+    </section>
 
-      <div class="sectionTitle sideTitle">خلاصه امروز</div>
-      <section class="panel sidePanel" id="todaySummary"></section>
-
-      <div class="sectionTitle sideTitle">آخرین معاملات</div>
-      <section class="panel recentMini" id="recentMini"></section>
-    </aside>
   </section>
 </template>
 
@@ -205,6 +216,6 @@
   </section>
 </template>
 
-<script src="app.js?v=163"></script>
+<script src="app.js?v=164"></script>
 </body>
 </html>

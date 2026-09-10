@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.6.3-dashboard-priority';
+const CACHE='khonji-pwa-v1.6.4-real-dashboard';
 const CORE=[
   './',
   './index.html?v=112',
