@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.6.0';
+const BUILD_VERSION='1.6.1';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -848,9 +848,8 @@ if(window.visualViewport){
 }
 
 
-let goldCalcLastEdited=null;
 let goldCalcLock=false;
-let goldCalcPreviousEdited=null;
+let goldCalcAuthorities=[]; // two most recently USER-edited distinct fields
 
 function setGoldCalcStatus(message,type=''){
   const el=document.getElementById('goldCalcStatus');
@@ -873,109 +872,174 @@ function goldValues(){
   const q=parseLooseNumber(document.getElementById('qty')?.value);
   const t=parseLooseNumber(document.getElementById('total')?.value);
   const r=parseLooseNumber(document.getElementById('unitRate')?.value);
-  return {q,t,r,
+  return {
+    q,t,r,
     hasQ:Number.isFinite(q)&&q>0,
     hasT:Number.isFinite(t)&&t>0,
     hasR:Number.isFinite(r)&&r>0
   };
 }
 
-function recalcGoldLinkedFields(changedId){
+function fieldHasValidGoldValue(id,vals=goldValues()){
+  if(id==='qty')return vals.hasQ;
+  if(id==='total')return vals.hasT;
+  if(id==='unitRate')return vals.hasR;
+  return false;
+}
+
+function defaultCompanionFor(changedId,vals){
+  // When all fields already contain values but the user has only just started
+  // editing, use a stable, intuitive default anchor.
+  if(changedId==='qty'){
+    if(vals.hasR)return 'unitRate';   // changing weight keeps rate => total changes
+    if(vals.hasT)return 'total';
+  }
+  if(changedId==='total'){
+    if(vals.hasR)return 'unitRate';   // changing total keeps rate => weight changes
+    if(vals.hasQ)return 'qty';
+  }
+  if(changedId==='unitRate'){
+    if(vals.hasQ)return 'qty';        // changing rate keeps weight => total changes
+    if(vals.hasT)return 'total';
+  }
+  return null;
+}
+
+function noteUserGoldEdit(changedId){
+  const vals=goldValues();
+
+  // Remove invalid authorities first.
+  goldCalcAuthorities=goldCalcAuthorities.filter(id=>fieldHasValidGoldValue(id,vals));
+
+  // The edited field becomes the newest authority.
+  goldCalcAuthorities=goldCalcAuthorities.filter(id=>id!==changedId);
+  if(fieldHasValidGoldValue(changedId,vals))goldCalcAuthorities.push(changedId);
+
+  // If this is the first authority and another populated field exists,
+  // choose one deterministic companion so the result is never ambiguous.
+  if(goldCalcAuthorities.length===1){
+    const companion=defaultCompanionFor(changedId,vals);
+    if(companion && companion!==changedId){
+      goldCalcAuthorities.unshift(companion);
+    }
+  }
+
+  // Keep only two most-recent distinct authorities.
+  if(goldCalcAuthorities.length>2){
+    goldCalcAuthorities=goldCalcAuthorities.slice(-2);
+  }
+}
+
+function authorityLabel(id){
+  return id==='qty'?'وزن':id==='total'?'مبلغ کل':'نرخ واحد';
+}
+
+function recalcGoldFromAuthorities(){
   if(goldCalcLock || entryType!=='GOLD')return;
 
-  const qtyEl=document.getElementById('qty');
-  const totalEl=document.getElementById('total');
-  const rateEl=document.getElementById('unitRate');
-  if(!qtyEl||!totalEl||!rateEl)return;
+  const vals=goldValues();
+  goldCalcAuthorities=goldCalcAuthorities.filter(id=>fieldHasValidGoldValue(id,vals));
 
-  goldCalcPreviousEdited=goldCalcLastEdited;
-  goldCalcLastEdited=changedId;
+  if(goldCalcAuthorities.length<2){
+    setGoldCalcStatus(
+      goldCalcAuthorities.length===1
+        ? `«${authorityLabel(goldCalcAuthorities[0])}» ثبت شد؛ یک مقدار دیگر وارد کن.`
+        : '',
+      ''
+    );
+    return;
+  }
 
-  let {q,t,r,hasQ,hasT,hasR}=goldValues();
+  const pair=new Set(goldCalcAuthorities);
+  let computedId=null;
+  let computedValue=NaN;
+  let decimals=0;
+
+  if(pair.has('qty') && pair.has('unitRate')){
+    computedId='total';
+    computedValue=vals.q*vals.r;
+    decimals=0;
+  }else if(pair.has('qty') && pair.has('total')){
+    computedId='unitRate';
+    computedValue=vals.t/vals.q;
+    decimals=0;
+  }else if(pair.has('total') && pair.has('unitRate')){
+    computedId='qty';
+    computedValue=vals.t/vals.r;
+    decimals=3;
+  }else{
+    return;
+  }
+
+  if(!Number.isFinite(computedValue) || computedValue<=0){
+    setGoldCalcStatus('محاسبه ممکن نیست؛ دو مقدار مبنا باید بیشتر از صفر باشند.','warn');
+    return;
+  }
 
   goldCalcLock=true;
   try{
-    if(changedId==='qty'){
-      // Changing weight: preserve rate if available; otherwise preserve total.
-      if(hasQ && hasR){
-        setFieldNumericValue('total',q*r,0);
-        setGoldCalcStatus('مبلغ کل = وزن × نرخ واحد','ok');
-      }else if(hasQ && hasT){
-        setFieldNumericValue('unitRate',t/q,0);
-        setGoldCalcStatus('نرخ واحد = مبلغ کل ÷ وزن','ok');
-      }else{
-        setGoldCalcStatus(hasQ?'برای محاسبه نرخ واحد یا مبلغ کل را وارد کن.':'وزن باید بیشتر از صفر باشد.',hasQ?'':'warn');
-      }
-    }else if(changedId==='total'){
-      // Changing total: preserve rate if available; otherwise preserve weight.
-      if(hasT && hasR){
-        setFieldNumericValue('qty',t/r,3);
-        setGoldCalcStatus('وزن = مبلغ کل ÷ نرخ واحد','ok');
-      }else if(hasT && hasQ){
-        setFieldNumericValue('unitRate',t/q,0);
-        setGoldCalcStatus('نرخ واحد = مبلغ کل ÷ وزن','ok');
-      }else{
-        setGoldCalcStatus(hasT?'برای محاسبه نرخ واحد یا وزن را وارد کن.':'مبلغ کل باید بیشتر از صفر باشد.',hasT?'':'warn');
-      }
-    }else if(changedId==='unitRate'){
-      // Changing rate:
-      // If total was edited most recently, preserve total and recalc weight.
-      // Otherwise preserve weight and recalc total.
-      if(hasR && hasT && goldCalcPreviousEdited==='total'){
-        setFieldNumericValue('qty',t/r,3);
-        setGoldCalcStatus('وزن = مبلغ کل ÷ نرخ واحد','ok');
-      }else if(hasR && hasQ){
-        setFieldNumericValue('total',q*r,0);
-        setGoldCalcStatus('مبلغ کل = وزن × نرخ واحد','ok');
-      }else if(hasR && hasT){
-        setFieldNumericValue('qty',t/r,3);
-        setGoldCalcStatus('وزن = مبلغ کل ÷ نرخ واحد','ok');
-      }else{
-        setGoldCalcStatus(hasR?'برای محاسبه وزن یا مبلغ کل را وارد کن.':'نرخ واحد باید بیشتر از صفر باشد.',hasR?'':'warn');
-      }
-    }
+    setFieldNumericValue(computedId,computedValue,decimals);
 
-    // Always refresh display formatting after a valid calculation.
-    const v=goldValues();
-    if(v.hasQ) qtyEl.value=formatGroupedNumber(v.q,3);
-    if(v.hasT) totalEl.value=formatGroupedNumber(v.t,0);
-    if(v.hasR) rateEl.value=formatGroupedNumber(v.r,0);
-
+    // Normalize display of the two authoritative fields without changing values.
     const v2=goldValues();
-    if(v2.hasQ&&v2.hasT&&v2.hasR){
-      const expected=v2.q*v2.r;
-      const rel=Math.abs(expected-v2.t)/Math.max(v2.t,1);
-      if(rel>0.001){
-        setGoldCalcStatus('اعداد با هم سازگار نیستند؛ آخرین ورودی مبنای محاسبه قرار گرفت.','warn');
-      }
-    }
+    if(v2.hasQ)document.getElementById('qty').value=formatGroupedNumber(v2.q,3);
+    if(v2.hasT)document.getElementById('total').value=formatGroupedNumber(v2.t,0);
+    if(v2.hasR)document.getElementById('unitRate').value=formatGroupedNumber(v2.r,0);
+
+    const a=authorityLabel(goldCalcAuthorities[0]);
+    const b=authorityLabel(goldCalcAuthorities[1]);
+    const c=authorityLabel(computedId);
+    setGoldCalcStatus(`${a} + ${b} مبنا • ${c} خودکار محاسبه شد`,'ok');
   }finally{
     goldCalcLock=false;
   }
 }
 
+function recalcGoldLinkedFields(changedId,userInitiated=true){
+  if(goldCalcLock || entryType!=='GOLD')return;
+
+  if(userInitiated)noteUserGoldEdit(changedId);
+  recalcGoldFromAuthorities();
+}
+
+function resetGoldCalcAuthorities(){
+  goldCalcAuthorities=[];
+}
+
 function installGoldLinkedFields(){
   const ids=['qty','total','unitRate'];
+
   ids.forEach(id=>{
     const el=document.getElementById(id);
     if(!el || el.dataset.goldLinkedReady==='1')return;
     el.dataset.goldLinkedReady='1';
 
     el.addEventListener('input',()=>{
+      if(goldCalcLock)return;
+
       if(id==='total' || id==='unitRate'){
         el.value=formatGroupedInputValue(el.value,false,0);
       }else{
         el.value=formatGroupedInputValue(el.value,true,3);
       }
+
       try{el.setSelectionRange(el.value.length,el.value.length)}catch(_){}
-      recalcGoldLinkedFields(id);
+
+      // This event is triggered by the user's keypad/buttons.
+      recalcGoldLinkedFields(id,true);
     });
 
-    el.addEventListener('change',()=>recalcGoldLinkedFields(id));
+    // "change" must NOT count as a second independent edit.
+    // It only re-runs the current two-authority equation.
+    el.addEventListener('change',()=>{
+      if(goldCalcLock)return;
+      recalcGoldFromAuthorities();
+    });
   });
 }
 
 function renderEntry(){
+  resetGoldCalcAuthorities();
   setView(cloneTpl('entryTpl'));
   let type=entryType;
   const assets= type==='GOLD'?['آبشده','طلای متفرقه']:
@@ -1056,6 +1120,7 @@ function renderEntry(){
       entryBuy=t.side==='BUY'; selectedCoin=t.asset; selectedAsset=t.asset;
       qty.value=formatGroupedNumber(t.qty,3); total.value=t.total?formatGroupedNumber(t.total,0):''; unitRate.value=t.rate?formatGroupedNumber(t.rate,0):'';party.value=t.party||'';note.value=t.note||'';
       normalCoin.checked=t.coinType==='NORMAL';refreshMode();
+      if(type==='GOLD')setGoldCalcStatus('برای اصلاح، هر فیلدی را تغییر بده؛ سیستم مقدار سوم را خودکار هماهنگ می‌کند.','');
     }
   }
 

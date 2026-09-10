@@ -1205,3 +1205,17 @@ body.customKeypadOpen .pickerQtyInput:focus{
   opacity:.28;
   pointer-events:none;
 }
+
+
+/* ===== v1.6.1 Deterministic 2-of-3 Gold Calculation ===== */
+.goldCalcStatus{
+  min-height:24px;
+  margin:10px 4px 2px;
+  padding:0 4px;
+  font-size:13px;
+  line-height:1.6;
+  font-weight:800;
+  text-align:right;
+}
+.goldCalcStatus.ok{color:var(--gold)}
+.goldCalcStatus.warn{color:var(--red)}
