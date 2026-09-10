@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
-  <link rel="stylesheet" href="styles.css?v=156"/>
+  <link rel="stylesheet" href="styles.css?v=157"/>
   <title>دفتر معاملات طلا</title>
 </head>
 <body>
@@ -20,7 +20,7 @@
       <p>ثبت سریع، دفتر روزانه و بالانس</p>
     </div>
     <button id="themeBtn" class="iconBtn">◐</button>
-  <div id="appVersionBadge" class="versionBadge">v1.5.6</div></header>
+  <div id="appVersionBadge" class="versionBadge">v1.5.7</div></header>
 
   <main id="view"></main>
 
@@ -120,12 +120,12 @@
   <section class="tabletFormGrid">
     <label class="field panel">
       <span>مبلغ کل (تومان) — اختیاری</span>
-      <input id="total" type="text" inputmode="none" pattern="[0-9۰-۹,]*" enterkeyhint="next" autocomplete="off" dir="ltr" aria-label="مبلغ کل" data-custom-keypad="1">
+      <input id="total" type="text" inputmode="none" enterkeyhint="next" autocomplete="off" dir="ltr" aria-label="مبلغ کل" data-custom-keypad="1">
     </label>
 
     <label class="field panel">
       <span>نرخ واحد (تومان) — اختیاری</span>
-      <input id="unitRate" type="text" inputmode="none" pattern="[0-9۰-۹,]*" enterkeyhint="next" autocomplete="off" dir="ltr" aria-label="نرخ واحد" data-custom-keypad="1">
+      <input id="unitRate" type="text" inputmode="none" enterkeyhint="next" autocomplete="off" dir="ltr" aria-label="نرخ واحد" data-custom-keypad="1">
     </label>
   </section>
 
@@ -144,7 +144,8 @@
   </section>
 
   <div class="entrySpacer"></div>
-  <button id="saveTrade" class="stickySave">ثبت خرید</button>
+  <div id="goldCalcStatus" class="goldCalcStatus"></div>
+<button id="saveTrade" class="stickySave">ثبت خرید</button>
 </template>
 
 <template id="ledgerTpl">
@@ -204,6 +205,6 @@
   </section>
 </template>
 
-<script src="app.js?v=156"></script>
+<script src="app.js?v=157"></script>
 </body>
 </html>

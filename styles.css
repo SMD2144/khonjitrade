@@ -1166,3 +1166,21 @@ body.customKeypadOpen .pickerQtyInput:focus{
     padding-bottom:340px !important;
   }
 }
+
+
+/* ===== v1.5.7 Linked Gold Calculations ===== */
+.goldCalcStatus{
+  min-height:24px;
+  margin:8px 4px 2px;
+  font-size:13px;
+  line-height:1.6;
+  color:var(--muted);
+  text-align:right;
+}
+.goldCalcStatus.ok{color:var(--green)}
+.goldCalcStatus.warn{color:var(--red)}
+
+#total,#unitRate{
+  font-variant-numeric:tabular-nums;
+  letter-spacing:.2px;
+}

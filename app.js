@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.5.6';
+const BUILD_VERSION='1.5.7';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -624,7 +624,13 @@ function ensureCustomKeypad(){
       v+=k;
     }
 
-    customKeypadTarget.value=v;
+    if(customKeypadTarget.id==='total' || customKeypadTarget.id==='unitRate'){
+      customKeypadTarget.value=formatGroupedInputValue(v,false,0);
+    }else if(customKeypadTarget.id==='qty'){
+      customKeypadTarget.value=formatGroupedInputValue(v,true,3);
+    }else{
+      customKeypadTarget.value=v;
+    }
     customKeypadTarget.dispatchEvent(new Event('input',{bubbles:true}));
   });
 
@@ -656,6 +662,41 @@ function openCustomKeypad(el){
       window.scrollBy({top:r.top-70,behavior:'smooth'});
     }
   },80);
+}
+
+
+function normalizeDigits(s){
+  return String(s??'')
+    .replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
+    .replace(/[٬،,\s]/g,'')
+    .replace(/٫/g,'.');
+}
+
+function parseLooseNumber(v){
+  const n=Number(normalizeDigits(v));
+  return Number.isFinite(n)?n:NaN;
+}
+
+function formatGroupedNumber(v, maxDecimals=3){
+  if(v===null || v===undefined || v==='')return '';
+  const n=typeof v==='number'?v:parseLooseNumber(v);
+  if(!Number.isFinite(n))return '';
+  const fixed=n.toFixed(maxDecimals).replace(/\.?0+$/,'');
+  const [intPart,decPart]=fixed.split('.');
+  const grouped=intPart.replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  return decPart!==undefined ? `${grouped}.${decPart}` : grouped;
+}
+
+function formatGroupedInputValue(raw, allowDecimal=true, maxDecimals=3){
+  let s=normalizeDigits(raw);
+  if(!allowDecimal)s=s.replace(/\./g,'');
+  const parts=s.split('.');
+  let intPart=(parts[0]||'').replace(/\D/g,'');
+  let decPart=allowDecimal ? (parts.slice(1).join('').replace(/\D/g,'').slice(0,maxDecimals)) : '';
+  intPart=intPart.replace(/^0+(?=\d)/,'');
+  if(intPart)intPart=intPart.replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  if(allowDecimal && s.includes('.'))return `${intPart||'0'}.${decPart}`;
+  return intPart;
 }
 
 function installCustomNumericKeypad(scope=document){
@@ -751,6 +792,133 @@ if(window.visualViewport){
   });
 }
 
+
+let goldCalcLastEdited=null;
+let goldCalcLock=false;
+
+function setGoldCalcStatus(message,type=''){
+  const el=document.getElementById('goldCalcStatus');
+  if(!el)return;
+  el.textContent=message||'';
+  el.className='goldCalcStatus'+(type?` ${type}`:'');
+}
+
+function setFieldNumericValue(id,value,decimals=3){
+  const el=document.getElementById(id);
+  if(!el)return;
+  if(!Number.isFinite(value)){
+    el.value='';
+    return;
+  }
+  el.value=formatGroupedNumber(value,decimals);
+}
+
+function recalcGoldLinkedFields(changedId){
+  if(goldCalcLock)return;
+  const qtyEl=document.getElementById('qty');
+  const totalEl=document.getElementById('total');
+  const rateEl=document.getElementById('unitRate');
+  if(!qtyEl || !totalEl || !rateEl)return;
+
+  const asset=currentAsset;
+  if(asset!=='آبشده' && asset!=='طلای متفرقه'){
+    setGoldCalcStatus('');
+    return;
+  }
+
+  goldCalcLastEdited=changedId;
+
+  const q=parseLooseNumber(qtyEl.value);
+  const t=parseLooseNumber(totalEl.value);
+  const r=parseLooseNumber(rateEl.value);
+
+  const hasQ=Number.isFinite(q) && q>0;
+  const hasT=Number.isFinite(t) && t>0;
+  const hasR=Number.isFinite(r) && r>0;
+
+  goldCalcLock=true;
+  try{
+    if(changedId==='qty'){
+      if(hasQ && hasR){
+        setFieldNumericValue('total',q*r,0);
+        setGoldCalcStatus('مبلغ کل از وزن × نرخ واحد محاسبه شد.','ok');
+      }else if(hasQ && hasT){
+        setFieldNumericValue('unitRate',t/q,0);
+        setGoldCalcStatus('نرخ واحد از مبلغ کل ÷ وزن محاسبه شد.','ok');
+      }else if(!hasQ && (hasT||hasR)){
+        setGoldCalcStatus('برای محاسبه، یک مقدار معتبر برای وزن وارد کن.','warn');
+      }else{
+        setGoldCalcStatus('');
+      }
+    }else if(changedId==='total'){
+      if(hasT && hasR){
+        setFieldNumericValue('qty',t/r,3);
+        setGoldCalcStatus('وزن از مبلغ کل ÷ نرخ واحد محاسبه شد.','ok');
+      }else if(hasT && hasQ){
+        setFieldNumericValue('unitRate',t/q,0);
+        setGoldCalcStatus('نرخ واحد از مبلغ کل ÷ وزن محاسبه شد.','ok');
+      }else if(!hasT && (hasQ||hasR)){
+        setGoldCalcStatus('مبلغ کل باید بیشتر از صفر باشد.','warn');
+      }else{
+        setGoldCalcStatus('');
+      }
+    }else if(changedId==='unitRate'){
+      if(hasR && hasT){
+        setFieldNumericValue('qty',t/r,3);
+        setGoldCalcStatus('وزن از مبلغ کل ÷ نرخ واحد محاسبه شد.','ok');
+      }else if(hasR && hasQ){
+        setFieldNumericValue('total',q*r,0);
+        setGoldCalcStatus('مبلغ کل از وزن × نرخ واحد محاسبه شد.','ok');
+      }else if(!hasR && (hasQ||hasT)){
+        setGoldCalcStatus('نرخ واحد باید بیشتر از صفر باشد.','warn');
+      }else{
+        setGoldCalcStatus('');
+      }
+    }
+
+    // Sanity warning if all three are present but inconsistent by > 0.5%
+    const q2=parseLooseNumber(qtyEl.value);
+    const t2=parseLooseNumber(totalEl.value);
+    const r2=parseLooseNumber(rateEl.value);
+    if(Number.isFinite(q2)&&q2>0&&Number.isFinite(t2)&&t2>0&&Number.isFinite(r2)&&r2>0){
+      const expected=q2*r2;
+      const rel=Math.abs(expected-t2)/Math.max(t2,1);
+      if(rel>0.005){
+        setGoldCalcStatus('سه مقدار با هم سازگار نیستند؛ آخرین ورودی مبنای اصلاح قرار گرفت.','warn');
+      }
+    }
+  }finally{
+    goldCalcLock=false;
+  }
+}
+
+function installGoldLinkedFields(){
+  const ids=['qty','total','unitRate'];
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el || el.dataset.goldLinkedReady==='1')return;
+    el.dataset.goldLinkedReady='1';
+
+    el.addEventListener('input',()=>{
+      if(id==='total' || id==='unitRate'){
+        const pos=el.selectionStart;
+        const before=el.value;
+        const maxDec = id==='unitRate' ? 0 : 0;
+        el.value=formatGroupedInputValue(before,false,maxDec);
+        try{el.setSelectionRange(el.value.length,el.value.length)}catch(_){}
+      }else if(id==='qty'){
+        // qty may have decimal grams
+        const before=el.value;
+        el.value=formatGroupedInputValue(before,true,3);
+        try{el.setSelectionRange(el.value.length,el.value.length)}catch(_){}
+      }
+      recalcGoldLinkedFields(id);
+    });
+
+    el.addEventListener('change',()=>recalcGoldLinkedFields(id));
+  });
+}
+
 function renderEntry(){
   setView(cloneTpl('entryTpl'));
   let type=entryType;
@@ -840,6 +1008,7 @@ function renderEntry(){
   }
 
   installEditableFocusFix(document);
+  installGoldLinkedFields();
 
   saveTrade.onclick=()=>{
     const asset=type==='COIN'?selectedCoin:selectedAsset;
@@ -955,3 +1124,7 @@ document.addEventListener('DOMContentLoaded',()=>installCustomNumericKeypad(docu
 const customKeypadObserver=new MutationObserver(()=>installCustomNumericKeypad(document));
 const customKeypadView=document.getElementById('view');
 if(customKeypadView)customKeypadObserver.observe(customKeypadView,{childList:true,subtree:true});
+
+const goldLinkedObserver=new MutationObserver(()=>installGoldLinkedFields());
+const goldLinkedView=document.getElementById('view');
+if(goldLinkedView)goldLinkedObserver.observe(goldLinkedView,{childList:true,subtree:true});

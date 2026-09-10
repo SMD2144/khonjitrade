@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.5.6-keypad-refine';
+const CACHE='khonji-pwa-v1.5.7-linked-gold-fields';
 const CORE=[
   './',
   './index.html?v=112',
