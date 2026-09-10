@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.8.0';
+const BUILD_VERSION='1.8.1';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -2156,13 +2156,13 @@ window.addEventListener('orientationchange',()=>{
 });
 
 
-const PWA_SHELL_VERSION='1.8.0';
+const PWA_SHELL_VERSION='1.8.1';
 
 async function installPwaUpdateManagerV174(){
   if(!('serviceWorker' in navigator))return;
 
   try{
-    const reg=await navigator.serviceWorker.register('./sw.js?v=180',{
+    const reg=await navigator.serviceWorker.register('./sw.js?v=181',{
       scope:'./',
       updateViaCache:'none'
     });
@@ -2193,7 +2193,7 @@ async function installPwaUpdateManagerV174(){
         if(target && target!==seen){
           sessionStorage.setItem('khonji_sw_seen',target);
           // One controlled reload only, avoiding loops.
-          location.replace('./index.html?v=180');
+          location.replace('./index.html?v=181');
         }
       }
     });
@@ -2202,7 +2202,7 @@ async function installPwaUpdateManagerV174(){
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
       if(reloading)return;
       reloading=true;
-      setTimeout(()=>location.replace('./index.html?v=180'),50);
+      setTimeout(()=>location.replace('./index.html?v=181'),50);
     });
 
   }catch(err){
@@ -2216,22 +2216,22 @@ function markStandaloneVersionV174(){
   const standalone =
     window.matchMedia?.('(display-mode: standalone)').matches ||
     window.navigator.standalone===true;
-  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.8.0');
+  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.8.1');
   if(badge && standalone){
-    badge.title='PWA standalone • shell 1.8.0';
+    badge.title='PWA standalone • shell 1.8.1';
   }
 }
 document.addEventListener('DOMContentLoaded',markStandaloneVersionV174);
 
 
 
-function ensurePwaRepairButtonV180(){
-  if(document.getElementById('pwaRepairBtnV180'))return;
+function ensurePwaRepairButtonV181(){
+  if(document.getElementById('pwaRepairBtnV181'))return;
 
   const btn=document.createElement('button');
   btn.type='button';
-  btn.id='pwaRepairBtnV180';
-  btn.className='pwaRepairBtnV180';
+  btn.id='pwaRepairBtnV181';
+  btn.className='pwaRepairBtnV181';
   btn.textContent='به‌روزرسانی اجباری';
   btn.title='پاک‌کردن کش برنامه و دریافت نسخه جدید بدون حذف معاملات';
 
@@ -2270,12 +2270,12 @@ function ensurePwaRepairButtonV180(){
 
       // 3) Mark repair attempt in sessionStorage only.
       try{
-        sessionStorage.setItem('khonji_force_repair_v180','1');
+        sessionStorage.setItem('khonji_force_repair_v181','1');
       }catch(_){}
 
       // 4) Reload a versioned URL with a one-time cache-buster.
       const u=new URL('./index.html', location.href);
-      u.searchParams.set('v','180');
+      u.searchParams.set('v','181');
       u.searchParams.set('repair',Date.now().toString());
       location.replace(u.toString());
     }catch(err){
@@ -2289,5 +2289,5 @@ function ensurePwaRepairButtonV180(){
   document.body.appendChild(btn);
 }
 
-document.addEventListener('DOMContentLoaded',ensurePwaRepairButtonV180);
-setTimeout(ensurePwaRepairButtonV180,500);
+document.addEventListener('DOMContentLoaded',ensurePwaRepairButtonV181);
+setTimeout(ensurePwaRepairButtonV181,500);

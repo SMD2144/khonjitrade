@@ -1,10 +1,10 @@
-const CACHE='khonji-pwa-v1.8.0-server-sync';
+const CACHE='khonji-pwa-v1.8.1-cross-origin-api-fix';
 const CORE=[
   './',
-  './index.html?v=180',
-  './styles.css?v=180',
-  './app.js?v=180',
-  './manifest.json?v=180',
+  './index.html?v=181',
+  './styles.css?v=181',
+  './app.js?v=181',
+  './manifest.json?v=181',
   './icon-192.svg',
   './icon-512.svg'
 ];
@@ -24,7 +24,7 @@ self.addEventListener('activate', event => {
 
     const clients=await self.clients.matchAll({type:'window', includeUncontrolled:true});
     for(const client of clients){
-      client.postMessage({type:'KHONJI_SW_ACTIVATED',version:'1.8.0'});
+      client.postMessage({type:'KHONJI_SW_ACTIVATED',version:'1.8.1'});
     }
   })());
 });
@@ -35,16 +35,24 @@ self.addEventListener('fetch', event => {
 
   const url=new URL(req.url);
 
+  // IMPORTANT: the service worker is only for this GitHub Pages app shell.
+  // Never intercept API or any other cross-origin request. On iOS/Safari,
+  // intercepting authenticated cross-origin fetches can surface as
+  // "FetchEvent.respondWith received an error: TypeError: Load failed".
+  if(url.origin !== self.location.origin){
+    return;
+  }
+
   // App shell: network first. This prevents Home Screen from being stuck on old HTML.
   if(req.mode==='navigate' || url.pathname.endsWith('/index.html')){
     event.respondWith((async()=>{
       try{
         const fresh=await fetch(req,{cache:'no-store'});
         const cache=await caches.open(CACHE);
-        cache.put('./index.html?v=180', fresh.clone()).catch(()=>{});
+        cache.put('./index.html?v=181', fresh.clone()).catch(()=>{});
         return fresh;
       }catch(_){
-        return (await caches.match('./index.html?v=180')) || (await caches.match('./'));
+        return (await caches.match('./index.html?v=181')) || (await caches.match('./'));
       }
     })());
     return;

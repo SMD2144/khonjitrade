@@ -391,3 +391,10 @@ v1.8.0 SERVER SYNC
 - Theme محلی باقی می‌ماند.
 - توکن در کلید جداگانه localStorage و خارج از JSON Backup عادی نگهداری می‌شود.
 - storage key اصلی تغییری نکرده: khonji_pwa_v1
+
+
+v1.8.1 CROSS-ORIGIN API FIX
+- Service Worker دیگر هیچ درخواست Cross-Origin را intercept نمی‌کند.
+- درخواست‌های https://trade-api.khonjigold.com مستقیماً توسط Safari/WebKit به شبکه می‌روند.
+- خطای iOS: FetchEvent.respondWith ... TypeError: Load failed رفع هدف‌گذاری شده است.
+- Sync logic، دیتای localStorage، API URL و Token دست نخورده‌اند.
