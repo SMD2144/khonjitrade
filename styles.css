@@ -862,3 +862,54 @@ textarea:focus{
   .stepField input{font-size:36px !important}
   .settingsGrid input,.inlineAdd input{font-size:18px !important}
 }
+
+
+/* ===== v1.5.3 Native iPad Keyboard ===== */
+.versionBadge{
+  position:fixed;
+  top:calc(8px + env(safe-area-inset-top));
+  left:12px;
+  z-index:80;
+  direction:ltr;
+  font-size:12px;
+  font-weight:800;
+  color:var(--gold);
+  background:color-mix(in srgb,var(--surface) 92%,transparent);
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:5px 9px;
+  box-shadow:var(--shadow);
+  pointer-events:none;
+}
+
+input:not([type="checkbox"]):not([type="file"]),
+textarea{
+  -webkit-user-select:text !important;
+  user-select:text !important;
+  pointer-events:auto !important;
+  touch-action:auto !important;
+  -webkit-touch-callout:default !important;
+  cursor:text;
+  position:relative;
+  z-index:auto !important;
+}
+
+input:focus,textarea:focus{
+  outline:none !important;
+  caret-color:var(--gold) !important;
+}
+
+@supports (-webkit-touch-callout:none){
+  input:not([type="checkbox"]):not([type="file"]),
+  textarea{
+    font-size:16px !important;
+  }
+  .stepField input{font-size:30px !important}
+  .field input,.field textarea{font-size:18px !important}
+}
+
+@media (min-width:768px){
+  .versionBadge{left:18px;font-size:13px}
+  .stepField input{font-size:34px !important}
+  .field input,.field textarea{font-size:20px !important}
+}

@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
   <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
-  <link rel="stylesheet" href="styles.css?v=152"/>
+  <link rel="stylesheet" href="styles.css?v=153"/>
   <title>دفتر معاملات طلا</title>
 </head>
 <body>
@@ -20,7 +20,7 @@
       <p>ثبت سریع، دفتر روزانه و بالانس</p>
     </div>
     <button id="themeBtn" class="iconBtn">◐</button>
-  </header>
+  <div id="appVersionBadge" class="versionBadge">v1.5.3</div></header>
 
   <main id="view"></main>
 
@@ -110,7 +110,7 @@
     <button id="plusBtn" class="plus" aria-label="افزایش">+</button>
     <div class="qtyCenter">
       <label id="qtyLabel">وزن / تعداد / مقدار</label>
-      <input id="qty" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" placeholder="0"/>
+      <input id="qty" type="text" inputmode="decimal" pattern="[0-9۰-۹.,]*" enterkeyhint="next" autocomplete="off" placeholder="0">
     </div>
     <button id="minusBtn" class="minus" aria-label="کاهش">−</button>
   </section>
@@ -120,12 +120,12 @@
   <section class="tabletFormGrid">
     <label class="field panel">
       <span>مبلغ کل (تومان) — اختیاری</span>
-      <input id="total" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off"/>
+      <input id="total" type="text" inputmode="numeric" pattern="[0-9۰-۹,]*" enterkeyhint="next" autocomplete="off">
     </label>
 
     <label class="field panel">
       <span>نرخ واحد (تومان) — اختیاری</span>
-      <input id="unitRate" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off"/>
+      <input id="unitRate" type="text" inputmode="numeric" pattern="[0-9۰-۹,]*" enterkeyhint="next" autocomplete="off">
     </label>
   </section>
 
@@ -134,12 +134,12 @@
   <section class="tabletFormGrid">
     <label class="field panel">
       <span>طرف حساب — اختیاری</span>
-      <input id="party" type="text" inputmode="text" enterkeyhint="next" autocomplete="off"/>
+      <input id="party" type="text" inputmode="text" enterkeyhint="next" autocomplete="off">
     </label>
 
     <label class="field panel noteField">
       <span>توضیحات — اختیاری</span>
-      <textarea id="note" rows="4" inputmode="text" enterkeyhint="done"></textarea>
+      <textarea id="note" rows="4" inputmode="text" enterkeyhint="done" autocomplete="off"></textarea>
     </label>
   </section>
 
@@ -204,6 +204,6 @@
   </section>
 </template>
 
-<script src="app.js?v=152"></script>
+<script src="app.js?v=153"></script>
 </body>
 </html>

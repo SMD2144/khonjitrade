@@ -1,4 +1,5 @@
 const KEY='khonji_pwa_v1';
+const BUILD_VERSION='1.5.3';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -560,50 +561,32 @@ function installEditableFocusFix(scope=document){
     el.removeAttribute('readonly');
     el.style.pointerEvents='auto';
 
-    const forceNativeFocus=(ev)=>{
-      if(el.disabled)return;
-      // Keep this inside the user's touch/pointer event for iPadOS WebKit.
-      if(document.activeElement!==el){
-        try{ el.focus({preventScroll:true}); }
-        catch(_){ el.focus(); }
-      }
-
-      // Put caret at the end without changing the current value.
-      try{
-        const n=el.value.length;
-        el.setSelectionRange(n,n);
-      }catch(_){}
-    };
-
-    // pointerdown is the primary route on modern iPadOS.
-    el.addEventListener('pointerdown',forceNativeFocus,{passive:true});
-    // touchend is a WebKit fallback for older/standalone PWA behavior.
-    el.addEventListener('touchend',forceNativeFocus,{passive:true});
+    if(el.dataset.nativeFocusReady==='1') return;
+    el.dataset.nativeFocusReady='1';
 
     const revealFocusedField=()=>{
       const run=()=>{
         if(document.activeElement!==el)return;
-        const rect=el.closest('.panel')?.getBoundingClientRect() || el.getBoundingClientRect();
+        const panel=el.closest('.panel') || el;
+        const rect=panel.getBoundingClientRect();
         const vv=window.visualViewport;
         const viewportTop=vv ? vv.offsetTop : 0;
         const viewportBottom=viewportTop + (vv ? vv.height : window.innerHeight);
-        const save=document.getElementById('saveTrade');
-        const saveTop=save ? save.getBoundingClientRect().top : viewportBottom;
-        const safeBottom=Math.min(viewportBottom,saveTop)-20;
-        const safeTop=viewportTop+80;
+        const safeTop=viewportTop+70;
+        const safeBottom=viewportBottom-24;
 
         if(rect.bottom>safeBottom){
-          window.scrollBy({top:rect.bottom-safeBottom+20,behavior:'smooth'});
+          window.scrollBy({top:rect.bottom-safeBottom+24,behavior:'smooth'});
         }else if(rect.top<safeTop){
           window.scrollBy({top:rect.top-safeTop-16,behavior:'smooth'});
         }
       };
       requestAnimationFrame(run);
-      setTimeout(run,120);
-      setTimeout(run,320);
+      setTimeout(run,180);
+      setTimeout(run,420);
     };
 
-    el.addEventListener('focus',revealFocusedField);
+    el.addEventListener('focus',revealFocusedField,{passive:true});
   });
 }
 
@@ -611,7 +594,7 @@ if(window.visualViewport){
   window.visualViewport.addEventListener('resize',()=>{
     const el=document.activeElement;
     if(el && (el.matches('input') || el.matches('textarea'))){
-      setTimeout(()=>el.scrollIntoView({block:'center',behavior:'smooth'}),80);
+      setTimeout(()=>el.scrollIntoView({block:'center',behavior:'smooth'}),100);
     }
   });
 }
@@ -801,8 +784,12 @@ if('serviceWorker' in navigator){
 }
 
 
-const editableFocusObserver=new MutationObserver(()=>{
-  installEditableFocusFix(document);
-});
-editableFocusObserver.observe(document.getElementById('view'),{childList:true,subtree:true});
+const editableFocusObserver=new MutationObserver(()=>installEditableFocusFix(document));
+const observedView=document.getElementById('view');
+if(observedView) editableFocusObserver.observe(observedView,{childList:true,subtree:true});
 
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const b=document.getElementById('appVersionBadge');
+  if(b)b.textContent=`v${BUILD_VERSION}`;
+});
