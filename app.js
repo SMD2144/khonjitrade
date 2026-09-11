@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.10.0';
+const BUILD_VERSION='1.10.1';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -2157,6 +2157,17 @@ function renderLedger(){
   if(ledgerFilter==='SELL')data=data.filter(t=>t.side==='SELL');
   if(ledgerFilter==='UNNAMED')data=data.filter(t=>!t.party);
 
+  // Always show the newest transaction first, regardless of whether it was
+  // created locally or arrived through server sync. Do not rely on array
+  // insertion order because remote delta merges may append records.
+  data.sort((a,b)=>{
+    const byTs=Number(b.ts||0)-Number(a.ts||0);
+    if(byTs!==0)return byTs;
+    const byUpdated=Number(b._updatedAt||0)-Number(a._updatedAt||0);
+    if(byUpdated!==0)return byUpdated;
+    return String(b.id??'').localeCompare(String(a.id??''));
+  });
+
   // One visible card per settlement group. Never expose individual synthetic legs
   // as independently deletable accounting entries.
   const seenSettlementGroups=new Set();
@@ -2387,7 +2398,7 @@ window.addEventListener('orientationchange',()=>{
 });
 
 
-const PWA_SHELL_VERSION='1.10.0';
+const PWA_SHELL_VERSION='1.10.1';
 
 async function installPwaUpdateManagerV174(){
   if(!('serviceWorker' in navigator))return;
@@ -2447,9 +2458,9 @@ function markStandaloneVersionV174(){
   const standalone =
     window.matchMedia?.('(display-mode: standalone)').matches ||
     window.navigator.standalone===true;
-  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.10.0');
+  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.10.1');
   if(badge && standalone){
-    badge.title='PWA standalone • shell 1.10.0';
+    badge.title='PWA standalone • shell 1.10.1';
   }
 }
 document.addEventListener('DOMContentLoaded',markStandaloneVersionV174);

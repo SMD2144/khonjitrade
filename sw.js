@@ -1,4 +1,4 @@
-const CACHE='khonji-pwa-v1.10.0-delta-sync-5s';
+const CACHE='khonji-pwa-v1.10.1-delta-sync-5s';
 const CORE=[
   './',
   './index.html?v=1100',
@@ -24,7 +24,7 @@ self.addEventListener('activate', event => {
 
     const clients=await self.clients.matchAll({type:'window', includeUncontrolled:true});
     for(const client of clients){
-      client.postMessage({type:'KHONJI_SW_ACTIVATED',version:'1.10.0'});
+      client.postMessage({type:'KHONJI_SW_ACTIVATED',version:'1.10.1'});
     }
   })());
 });

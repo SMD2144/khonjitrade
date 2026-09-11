@@ -415,3 +415,7 @@ v1.9.0
 - حفظ generation guard و full pull امن پس از تغییر generation.
 - Bootstrap / Replace All همچنان snapshot کامل می‌فرستند.
 - کلید دیتای اصلی localStorage بدون تغییر: khonji_pwa_v1.
+
+
+## v1.10.1 NEWEST FIRST
+- دفتر امروز همیشه بر اساس زمان معامله نزولی مرتب می‌شود؛ رکورد تازه، چه محلی چه دریافت‌شده از Sync، بالاتر قرار می‌گیرد.
