@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.10.1';
+const BUILD_VERSION='1.10.2';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -33,9 +33,16 @@ function save(options={}){
     const oldById=new Map(oldTrades.map(t=>[String(t.id),t]));
     const currentIds=new Set((state.trades||[]).map(t=>String(t.id)));
 
+    meta.tombstones=meta.tombstones||{};
     for(const old of oldTrades){
       const id=String(old.id);
-      if(!currentIds.has(id))syncRememberDeletionV180(id,now);
+      if(!currentIds.has(id)){
+        // Keep deletions in the same in-memory meta object that save() persists.
+        // Calling syncRememberDeletionV180() here used to write a tombstone and
+        // then immediately overwrite it with the stale `meta` object below.
+        meta.tombstones[id]=Math.max(Number(meta.tombstones[id]||0),now);
+        delete meta.dirtyTrades[id];
+      }
     }
 
     state.trades=(state.trades||[]).map(t=>{
@@ -2398,7 +2405,7 @@ window.addEventListener('orientationchange',()=>{
 });
 
 
-const PWA_SHELL_VERSION='1.10.1';
+const PWA_SHELL_VERSION='1.10.2';
 
 async function installPwaUpdateManagerV174(){
   if(!('serviceWorker' in navigator))return;
@@ -2458,9 +2465,9 @@ function markStandaloneVersionV174(){
   const standalone =
     window.matchMedia?.('(display-mode: standalone)').matches ||
     window.navigator.standalone===true;
-  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.10.1');
+  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.10.2');
   if(badge && standalone){
-    badge.title='PWA standalone • shell 1.10.1';
+    badge.title='PWA standalone • shell 1.10.2';
   }
 }
 document.addEventListener('DOMContentLoaded',markStandaloneVersionV174);
