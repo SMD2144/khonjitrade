@@ -2139,3 +2139,6 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
   border:1px solid rgba(220,70,70,.45)!important;
   font-weight:950!important;
 }
+
+/* v1.11.0 Auth/RBAC */
+.authIdentityV1110{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:14px;margin:10px 0}.authIdentityV1110 b{font-size:18px}.authIdentityV1110 span{color:var(--muted);direction:ltr}.authAdminBoxV1110{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.authUserRowV1110{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.authUserRowV1110 small{display:block;color:var(--muted);margin-top:4px;direction:ltr}.authUserRowV1110>div:last-child{display:flex;gap:6px}.authUserRowV1110 button{min-height:38px}

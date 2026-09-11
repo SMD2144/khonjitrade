@@ -73,6 +73,67 @@ function save(options={}){
 
 const SYNC_CFG_KEY_V180='khonji_sync_config_v1';
 const SYNC_META_KEY_V180='khonji_sync_meta_v1';
+
+const AUTH_KEY_V1110='khonji_auth_v1';
+function authLoadV1110(){try{return {token:'',user:null,...JSON.parse(localStorage.getItem(AUTH_KEY_V1110)||'{}')}}catch{return {token:'',user:null}}}
+function authStoreV1110(v){localStorage.setItem(AUTH_KEY_V1110,JSON.stringify(v||{token:'',user:null}))}
+function authUserV1110(){return authLoadV1110().user||null}
+function authTokenV1110(){return String(authLoadV1110().token||'')}
+function authCanV1110(p){const u=authUserV1110();return !!u&&(u.role==='admin'||(u.permissions||[]).includes(p))}
+function authLabelV1110(){const u=authUserV1110();if(!u)return 'وارد نشده';return u.role==='admin'?'مدیر':(u.display_name||u.username||'کاربر')}
+async function authApiV1110(path,options={}){
+  const cfg=syncLoadCfgV180(); const base=syncNormalizeApiV180(cfg.apiUrl);
+  if(!base)throw new Error('آدرس API وارد نشده');
+  const token=authTokenV1110()||cfg.token||'';
+  const r=await fetch(base+path,{cache:'no-store',...options,headers:{'Content-Type':'application/json',...(token?{'Authorization':'Bearer '+token}:{}),...(options.headers||{})}});
+  let data={}; try{data=await r.json()}catch{}
+  if(!r.ok)throw new Error(typeof data.detail==='string'?data.detail:(data.detail?.message||('HTTP '+r.status)));
+  return data;
+}
+async function authRefreshMeV1110(){
+  if(!authTokenV1110())return null;
+  try{const d=await authApiV1110('/api/v1/auth/me');const a=authLoadV1110();a.user=d.user;authStoreV1110(a);return d.user}
+  catch(e){const a=authLoadV1110();a.token='';a.user=null;authStoreV1110(a);return null}
+}
+async function authLoginV1110(username,password){
+  const d=await authApiV1110('/api/v1/auth/login',{method:'POST',body:JSON.stringify({username,password,device_id:syncDeviceIdV180()})});
+  authStoreV1110({token:d.token,user:d.user}); return d.user;
+}
+async function authBootstrapAdminV1110(username,password){
+  const cfg=syncLoadCfgV180(); if(!cfg.token)throw new Error('برای ساخت مدیر اولیه، API Token قبلی را در تنظیمات اتصال وارد کن');
+  const base=syncNormalizeApiV180(cfg.apiUrl); if(!base)throw new Error('آدرس API وارد نشده');
+  const r=await fetch(base+'/api/v1/auth/bootstrap-admin',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.token},body:JSON.stringify({username:username||'admin',password,display_name:'مدیر',device_id:syncDeviceIdV180()})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(typeof d.detail==='string'?d.detail:'خطا در ساخت مدیر');
+  authStoreV1110({token:d.token,user:d.user});return d.user;
+}
+async function authLogoutV1110(){try{if(authTokenV1110())await authApiV1110('/api/v1/auth/logout',{method:'POST'})}catch{}authStoreV1110({token:'',user:null})}
+function renderAuthPanelV1110(){
+  const host=document.getElementById('authPanelV1110'); if(!host)return;
+  const u=authUserV1110();
+  host.innerHTML=`<h3>حساب کاربری</h3><div class="authIdentityV1110"><b>${authLabelV1110()}</b><span>${u?('@'+u.username):'برای همگام‌سازی امن وارد شوید'}</span></div>
+  ${u?`<div class="twoBtns"><button id="authLogoutV1110" class="secondaryBtn">خروج از حساب</button>${u.role==='admin'?'<button id="authUsersV1110">مدیریت کاربران</button>':''}</div>`:
+  `<div class="settingsGrid"><label>نام کاربری<input id="authUsernameV1110" type="text" autocomplete="username" dir="ltr"></label><label>رمز عبور<input id="authPasswordV1110" type="password" autocomplete="current-password" dir="ltr"></label></div><div class="twoBtns"><button id="authLoginV1110">ورود</button><button id="authBootstrapV1110" class="secondaryBtn">ساخت مدیر اولیه</button></div>`}
+  <div id="authUsersHostV1110"></div>`;
+  if(u){document.getElementById('authLogoutV1110').onclick=async()=>{await authLogoutV1110();renderSettings()};const b=document.getElementById('authUsersV1110');if(b)b.onclick=()=>renderAdminUsersV1110()}
+  else{
+    document.getElementById('authLoginV1110').onclick=async()=>{try{await authLoginV1110(authUsernameV1110.value.trim(),authPasswordV1110.value);alert('ورود موفق');renderSettings()}catch(e){alert(e.message)}};
+    document.getElementById('authBootstrapV1110').onclick=async()=>{try{await authBootstrapAdminV1110(authUsernameV1110.value.trim()||'admin',authPasswordV1110.value);alert('مدیر اولیه ساخته شد');renderSettings()}catch(e){alert(e.message)}};
+  }
+}
+async function renderAdminUsersV1110(){
+  const host=document.getElementById('authUsersHostV1110');if(!host)return;host.innerHTML='<p>در حال دریافت کاربران...</p>';
+  try{const d=await authApiV1110('/api/v1/admin/users');
+    host.innerHTML=`<div class="authAdminBoxV1110"><h4>کاربران</h4><button id="authAddUserV1110">＋ کاربر جدید</button><div>${d.users.map(x=>`<div class="authUserRowV1110"><div><b>${x.role==='admin'?'مدیر':x.display_name}</b><small>@${x.username} • ${x.active?'فعال':'غیرفعال'}</small></div><div><button data-revoke="${x.id}" class="secondaryBtn">قطع نشست‌ها</button>${x.role!=='admin'?`<button data-toggle="${x.id}" data-active="${x.active?1:0}" class="secondaryBtn">${x.active?'غیرفعال':'فعال'}</button>`:''}</div></div>`).join('')}</div></div>`;
+    document.getElementById('authAddUserV1110').onclick=async()=>{
+      const username=prompt('نام کاربری انگلیسی:');if(!username)return;const display_name=prompt('نام نمایشی کاربر:')||username;const password=prompt('رمز عبور (حداقل ۶ کاراکتر):');if(!password)return;
+      const perms=['view_trades','add_trades','edit_trades','delete_trades','view_reports','sync_read','sync_write'];
+      try{await authApiV1110('/api/v1/admin/users',{method:'POST',body:JSON.stringify({username,display_name,password,role:'user',permissions:perms})});await renderAdminUsersV1110()}catch(e){alert(e.message)}
+    };
+    host.querySelectorAll('[data-revoke]').forEach(b=>b.onclick=async()=>{if(confirm('نشست‌های این کاربر قطع شود؟')){try{await authApiV1110('/api/v1/admin/users/'+b.dataset.revoke+'/revoke-sessions',{method:'POST'});alert('نشست‌ها قطع شد')}catch(e){alert(e.message)}}});
+    host.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=async()=>{try{await authApiV1110('/api/v1/admin/users/'+b.dataset.toggle,{method:'PUT',body:JSON.stringify({active:b.dataset.active!=='1'})});await renderAdminUsersV1110()}catch(e){alert(e.message)}});
+  }catch(e){host.innerHTML='<p class="syncWarningV180">'+e.message+'</p>'}
+}
+
 let syncTimerV180=null;
 let syncRunningV180=false;
 let syncApplyingV180=false;
@@ -124,14 +185,14 @@ function syncNormalizeApiV180(url){return String(url||'').trim().replace(/\/+$/,
 
 function syncHeadersV180(){
   const cfg=syncLoadCfgV180();
-  return {'Content-Type':'application/json','Authorization':'Bearer '+cfg.token};
+  const tok=authTokenV1110()||cfg.token; return {'Content-Type':'application/json','Authorization':'Bearer '+tok};
 }
 
 async function syncFetchV180(path,options={}){
   const cfg=syncLoadCfgV180();
   const base=syncNormalizeApiV180(cfg.apiUrl);
   if(!base)throw new Error('آدرس API وارد نشده');
-  if(!cfg.token)throw new Error('توکن دسترسی وارد نشده');
+  if(!(authTokenV1110()||cfg.token))throw new Error('ابتدا با حساب کاربری وارد شوید');
 
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),12000);
@@ -2262,11 +2323,20 @@ function renderReport(){
 function renderSettings(){
   setView(cloneTpl('settingsTpl'));
 
+  renderAuthPanelV1110();
   const syncCfg=syncLoadCfgV180();
   syncApiUrlV180.value=syncCfg.apiUrl||'';
   syncTokenV180.value=syncCfg.token||'';
   syncEnabledV180.checked=!!syncCfg.enabled;
   syncUpdateStatusUiV180();
+
+  const au=authUserV1110();
+  if(au){
+    syncTokenV180.closest('label').style.display='none';
+    if(!authCanV1110('server_replace'))syncReplaceAllV190.style.display='none';
+    if(!authCanV1110('server_settings'))syncBootstrapV180.style.display='none';
+  }
+
 
   function storeSyncFieldsV180(enableValue=null){
     const cfg=syncLoadCfgV180();
@@ -2368,6 +2438,7 @@ function normalizeLegacySyncFieldsV180(){
 normalizeLegacySyncFieldsV180();
 
 setTheme();show('dashboard');
+authRefreshMeV1110().then(()=>{ if(currentView==='settings')renderSettings(); }).catch(()=>{});
 
 if('serviceWorker' in navigator){
 // v1.7.4 old SW registration disabled:   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
