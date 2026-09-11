@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.11.0';
+const BUILD_VERSION='1.11.1';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -82,7 +82,7 @@ function authTokenV1110(){return String(authLoadV1110().token||'')}
 function authCanV1110(p){const u=authUserV1110();return !!u&&(u.role==='admin'||(u.permissions||[]).includes(p))}
 function authLabelV1110(){const u=authUserV1110();if(!u)return 'وارد نشده';return u.role==='admin'?'مدیر':(u.display_name||u.username||'کاربر')}
 async function authApiV1110(path,options={}){
-  const cfg=syncLoadCfgV180(); const base=syncNormalizeApiV180(cfg.apiUrl);
+  const cfg=syncLoadCfgV180(); const base=syncNormalizeApiV180(cfg.apiUrl||'https://trade-api.khonjigold.com');
   if(!base)throw new Error('آدرس API وارد نشده');
   const token=authTokenV1110()||cfg.token||'';
   const r=await fetch(base+path,{cache:'no-store',...options,headers:{'Content-Type':'application/json',...(token?{'Authorization':'Bearer '+token}:{}),...(options.headers||{})}});
@@ -107,6 +107,53 @@ async function authBootstrapAdminV1110(username,password){
   authStoreV1110({token:d.token,user:d.user});return d.user;
 }
 async function authLogoutV1110(){try{if(authTokenV1110())await authApiV1110('/api/v1/auth/logout',{method:'POST'})}catch{}authStoreV1110({token:'',user:null})}
+
+function authSetNavVisibleV1110(visible){
+  document.querySelectorAll('.bottomNav,.navProV171').forEach(el=>{el.style.display=visible?'':'none'});
+}
+function renderLoginGateV1110(message=''){
+  currentView='login';
+  authSetNavVisibleV1110(false);
+  const v=document.getElementById('view'); if(!v)return;
+  v.innerHTML=`<section dir="rtl" style="max-width:520px;margin:8vh auto 0;padding:22px">
+    <div class="panel" style="padding:24px;border-radius:22px">
+      <h2 style="margin:0 0 8px">ورود به دفتر معاملات طلا</h2>
+      <p style="opacity:.75;margin:0 0 20px">برای ادامه، نام کاربری و رمز عبور را وارد کنید.</p>
+      ${message?`<div style="margin-bottom:14px;color:#ff6b6b;font-weight:700">${message}</div>`:''}
+      <label style="display:block;margin-bottom:12px">نام کاربری<input id="loginUsernameV1110" type="text" autocomplete="username" dir="ltr" style="width:100%;margin-top:6px"></label>
+      <label style="display:block;margin-bottom:18px">رمز عبور<input id="loginPasswordV1110" type="password" autocomplete="current-password" dir="ltr" style="width:100%;margin-top:6px"></label>
+      <button id="loginSubmitV1110" style="width:100%;min-height:48px">ورود</button>
+      <div id="loginErrorV1110" style="margin-top:12px;color:#ff6b6b;font-weight:700"></div>
+    </div>
+  </section>`;
+  const user=document.getElementById('loginUsernameV1110');
+  const pass=document.getElementById('loginPasswordV1110');
+  const btn=document.getElementById('loginSubmitV1110');
+  const err=document.getElementById('loginErrorV1110');
+  const submit=async()=>{
+    const username=(user?.value||'').trim(), password=pass?.value||'';
+    if(!username||!password){err.textContent='نام کاربری و رمز عبور را وارد کنید';return}
+    btn.disabled=true;btn.textContent='در حال ورود...';err.textContent='';
+    try{
+      await authLoginV1110(username,password);
+      authSetNavVisibleV1110(true);
+      show('dashboard');
+      const cfg=syncLoadCfgV180(); if(!cfg.apiUrl){cfg.apiUrl='https://trade-api.khonjigold.com';syncStoreCfgV180(cfg)}
+      if(cfg.enabled)scheduleServerSyncV180();
+    }catch(e){err.textContent=e?.message||'ورود ناموفق بود';btn.disabled=false;btn.textContent='ورود'}
+  };
+  btn.onclick=submit;
+  pass.onkeydown=e=>{if(e.key==='Enter')submit()};
+  setTimeout(()=>user?.focus(),50);
+}
+async function authBootV1110(){
+  const token=authTokenV1110();
+  if(token){
+    const user=await authRefreshMeV1110();
+    if(user){authSetNavVisibleV1110(true);show('dashboard');return}
+  }
+  renderLoginGateV1110();
+}
 function renderAuthPanelV1110(){
   const host=document.getElementById('authPanelV1110'); if(!host)return;
   const u=authUserV1110();
@@ -114,7 +161,7 @@ function renderAuthPanelV1110(){
   ${u?`<div class="twoBtns"><button id="authLogoutV1110" class="secondaryBtn">خروج از حساب</button>${u.role==='admin'?'<button id="authUsersV1110">مدیریت کاربران</button>':''}</div>`:
   `<div class="settingsGrid"><label>نام کاربری<input id="authUsernameV1110" type="text" autocomplete="username" dir="ltr"></label><label>رمز عبور<input id="authPasswordV1110" type="password" autocomplete="current-password" dir="ltr"></label></div><div class="twoBtns"><button id="authLoginV1110">ورود</button><button id="authBootstrapV1110" class="secondaryBtn">ساخت مدیر اولیه</button></div>`}
   <div id="authUsersHostV1110"></div>`;
-  if(u){document.getElementById('authLogoutV1110').onclick=async()=>{await authLogoutV1110();renderSettings()};const b=document.getElementById('authUsersV1110');if(b)b.onclick=()=>renderAdminUsersV1110()}
+  if(u){document.getElementById('authLogoutV1110').onclick=async()=>{await authLogoutV1110();renderLoginGateV1110()};const b=document.getElementById('authUsersV1110');if(b)b.onclick=()=>renderAdminUsersV1110()}
   else{
     document.getElementById('authLoginV1110').onclick=async()=>{try{await authLoginV1110(authUsernameV1110.value.trim(),authPasswordV1110.value);alert('ورود موفق');renderSettings()}catch(e){alert(e.message)}};
     document.getElementById('authBootstrapV1110').onclick=async()=>{try{await authBootstrapAdminV1110(authUsernameV1110.value.trim()||'admin',authPasswordV1110.value);alert('مدیر اولیه ساخته شد');renderSettings()}catch(e){alert(e.message)}};
@@ -2437,8 +2484,8 @@ function normalizeLegacySyncFieldsV180(){
 }
 normalizeLegacySyncFieldsV180();
 
-setTheme();show('dashboard');
-authRefreshMeV1110().then(()=>{ if(currentView==='settings')renderSettings(); }).catch(()=>{});
+setTheme();
+authBootV1110().catch(e=>renderLoginGateV1110(e?.message||'خطا در بررسی ورود'));
 
 if('serviceWorker' in navigator){
 // v1.7.4 old SW registration disabled:   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
