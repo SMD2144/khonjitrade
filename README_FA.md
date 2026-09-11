@@ -404,3 +404,14 @@ v1.9.0
 - دکمه پاک‌کردن کامل و جایگزینی سرور با 3 مرحله تأیید.
 - Generation Guard برای جلوگیری از برگشت دیتای قدیمی دستگاه‌های دیگر.
 - بعد از Reset، دستگاه‌های قدیمی در Sync بعدی مجبور به Pull مرجع جدید می‌شوند.
+
+
+## v1.10.0 DELTA SYNC
+- Auto push حدود 900ms بعد از ثبت/ویرایش/حذف محلی.
+- Pull سبک هر 5 ثانیه فقط در حالت visible/foreground.
+- توقف polling در پس‌زمینه و شروع مجدد هنگام برگشت.
+- استفاده از /api/v1/push-delta و /api/v1/changes به‌جای ارسال کل تاریخچه در sync خودکار.
+- انتقال فقط رکوردهای dirty، tombstoneهای حذف و تنظیمات تغییرکرده.
+- حفظ generation guard و full pull امن پس از تغییر generation.
+- Bootstrap / Replace All همچنان snapshot کامل می‌فرستند.
+- کلید دیتای اصلی localStorage بدون تغییر: khonji_pwa_v1.

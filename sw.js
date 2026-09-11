@@ -1,10 +1,10 @@
-const CACHE='khonji-pwa-v1.9.0-replace-all-generation';
+const CACHE='khonji-pwa-v1.10.0-delta-sync-5s';
 const CORE=[
   './',
-  './index.html?v=190',
-  './styles.css?v=190',
-  './app.js?v=190',
-  './manifest.json?v=190',
+  './index.html?v=1100',
+  './styles.css?v=1100',
+  './app.js?v=1100',
+  './manifest.json?v=1100',
   './icon-192.svg',
   './icon-512.svg'
 ];
@@ -24,7 +24,7 @@ self.addEventListener('activate', event => {
 
     const clients=await self.clients.matchAll({type:'window', includeUncontrolled:true});
     for(const client of clients){
-      client.postMessage({type:'KHONJI_SW_ACTIVATED',version:'1.9.0'});
+      client.postMessage({type:'KHONJI_SW_ACTIVATED',version:'1.10.0'});
     }
   })());
 });
@@ -49,10 +49,10 @@ self.addEventListener('fetch', event => {
       try{
         const fresh=await fetch(req,{cache:'no-store'});
         const cache=await caches.open(CACHE);
-        cache.put('./index.html?v=190', fresh.clone()).catch(()=>{});
+        cache.put('./index.html?v=1100', fresh.clone()).catch(()=>{});
         return fresh;
       }catch(_){
-        return (await caches.match('./index.html?v=190')) || (await caches.match('./'));
+        return (await caches.match('./index.html?v=1100')) || (await caches.match('./'));
       }
     })());
     return;

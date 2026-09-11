@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.9.0';
+const BUILD_VERSION='1.10.0';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -27,6 +27,8 @@ function save(options={}){
   try{previous=JSON.parse(localStorage.getItem(KEY)||'null')}catch(_){}
 
   if(!skipTrack){
+    const meta=syncLoadMetaV180();
+    meta.dirtyTrades=meta.dirtyTrades||{};
     const oldTrades=Array.isArray(previous?.trades)?previous.trades:[];
     const oldById=new Map(oldTrades.map(t=>[String(t.id),t]));
     const currentIds=new Set((state.trades||[]).map(t=>String(t.id)));
@@ -37,17 +39,24 @@ function save(options={}){
     }
 
     state.trades=(state.trades||[]).map(t=>{
-      if(Number.isFinite(Number(t._updatedAt)) && Number(t._updatedAt)>0)return t;
-      const old=oldById.get(String(t.id));
-      if(old && JSON.stringify({...old,_updatedAt:undefined})===JSON.stringify({...t,_updatedAt:undefined})){
-        return {...t,_updatedAt:Number(old._updatedAt||old.ts||old.id||now)};
+      const id=String(t.id);
+      const old=oldById.get(id);
+      const stripUpdated=x=>{const y={...(x||{})};delete y._updatedAt;return y};
+      const changed=!old || JSON.stringify(stripUpdated(old))!==JSON.stringify(stripUpdated(t));
+      if(changed){
+        meta.dirtyTrades[id]=now;
+        return {...t,_updatedAt:now};
       }
-      return {...t,_updatedAt:now};
+      return {...t,_updatedAt:Number(old?._updatedAt||t._updatedAt||t.ts||t.id||now)};
     });
 
     const oldSettings=JSON.stringify({currencies:previous?.currencies||[],fx:previous?.fx||{}});
     const newSettings=JSON.stringify({currencies:state.currencies||[],fx:state.fx||{}});
-    if(oldSettings!==newSettings)syncMarkSettingsChangedV180(now);
+    if(oldSettings!==newSettings){
+      meta.settingsUpdatedAt=Math.max(Number(meta.settingsUpdatedAt||0),now);
+      meta.settingsDirty=true;
+    }
+    syncStoreMetaV180(meta);
   }
 
   localStorage.setItem(KEY,JSON.stringify(state));
@@ -74,11 +83,11 @@ function syncStoreCfgV180(cfg){localStorage.setItem(SYNC_CFG_KEY_V180,JSON.strin
 function syncLoadMetaV180(){
   try{
     return {
-      tombstones:{},settingsUpdatedAt:0,lastSyncAt:0,lastRevision:0,lastGeneration:0,lastError:'',
+      tombstones:{},dirtyTrades:{},settingsUpdatedAt:0,settingsDirty:false,lastSyncAt:0,lastRevision:0,lastGeneration:0,lastError:'',
       ...JSON.parse(localStorage.getItem(SYNC_META_KEY_V180)||'{}')
     };
   }catch(_){
-    return {tombstones:{},settingsUpdatedAt:0,lastSyncAt:0,lastRevision:0,lastGeneration:0,lastError:''};
+    return {tombstones:{},dirtyTrades:{},settingsUpdatedAt:0,settingsDirty:false,lastSyncAt:0,lastRevision:0,lastGeneration:0,lastError:''};
   }
 }
 function syncStoreMetaV180(meta){localStorage.setItem(SYNC_META_KEY_V180,JSON.stringify(meta))}
@@ -101,6 +110,7 @@ function syncRememberDeletionV180(id,ts=Date.now()){
 function syncMarkSettingsChangedV180(ts=Date.now()){
   const meta=syncLoadMetaV180();
   meta.settingsUpdatedAt=Math.max(Number(meta.settingsUpdatedAt||0),Number(ts)||Date.now());
+  meta.settingsDirty=true;
   syncStoreMetaV180(meta);
 }
 function syncNormalizeApiV180(url){return String(url||'').trim().replace(/\/+$/,'')}
@@ -127,7 +137,15 @@ async function syncFetchV180(path,options={}){
     });
     let body=null;
     try{body=await res.json()}catch(_){}
-    if(!res.ok)throw new Error(body?.detail||body?.message||('خطای سرور '+res.status));
+    if(!res.ok){
+      const detail=body?.detail;
+      const msg=(detail&&typeof detail==='object'?(detail.message||detail.code):detail) || body?.message || ('خطای سرور '+res.status);
+      const err=new Error(String(msg));
+      err.status=res.status;
+      err.code=(detail&&typeof detail==='object'?detail.code:body?.code)||'';
+      err.payload=body;
+      throw err;
+    }
     return body;
   }catch(err){
     if(err?.name==='AbortError')throw new Error('پاسخ سرور بیش از حد طول کشید');
@@ -157,6 +175,102 @@ function syncSnapshotV180(){
   };
 }
 
+
+function syncDeltaSnapshotV1100(){
+  const meta=syncLoadMetaV180();
+  const dirty=meta.dirtyTrades||{};
+  const byId=new Map((state.trades||[]).map(t=>[String(t.id),t]));
+  const trades=[];
+  for(const [id,stamp] of Object.entries(dirty)){
+    const t=byId.get(String(id));
+    if(!t)continue;
+    trades.push({...t,id:String(t.id),_updatedAt:Number(t._updatedAt||stamp||t.ts||Date.now())});
+  }
+  return {
+    device_id:syncDeviceIdV180(),
+    base_revision:Number(meta.lastRevision||0),
+    base_generation:Number(meta.lastGeneration||0),
+    trades,
+    tombstones:Object.entries(meta.tombstones||{}).map(([id,deleted_at])=>({id:String(id),deleted_at:Number(deleted_at)||Date.now()})),
+    settings:{
+      currencies:meta.settingsDirty?[...(state.currencies||[])]:[],
+      fx:meta.settingsDirty?{...(state.fx||{})}:{},
+      updated_at:meta.settingsDirty?Number(meta.settingsUpdatedAt||0):0
+    }
+  };
+}
+
+function syncAckDeltaV1100(sent){
+  const meta=syncLoadMetaV180();
+  meta.dirtyTrades=meta.dirtyTrades||{};
+  for(const t of sent.trades||[]){
+    const id=String(t.id);
+    if(Number(meta.dirtyTrades[id]||0)===Number(t._updatedAt||0))delete meta.dirtyTrades[id];
+  }
+  meta.tombstones=meta.tombstones||{};
+  for(const t of sent.tombstones||[]){
+    const id=String(t.id);
+    if(Number(meta.tombstones[id]||0)===Number(t.deleted_at||0))delete meta.tombstones[id];
+  }
+  if(sent.settings?.updated_at && Number(meta.settingsUpdatedAt||0)===Number(sent.settings.updated_at||0))meta.settingsDirty=false;
+  syncStoreMetaV180(meta);
+}
+
+function syncApplyDeltaV1100(payload){
+  if(!payload)return;
+  syncApplyingV180=true;
+  try{
+    const meta=syncLoadMetaV180();
+    meta.dirtyTrades=meta.dirtyTrades||{};
+    const local=new Map((state.trades||[]).map(t=>[String(t.id),t]));
+
+    for(const tomb of payload.tombstones||[]){
+      const id=String(tomb.id);
+      local.delete(id);
+      delete meta.dirtyTrades[id];
+      if(meta.tombstones)delete meta.tombstones[id];
+    }
+
+    for(const remote of payload.trades||[]){
+      const id=String(remote.id);
+      const cur=local.get(id);
+      const remoteTs=Number(remote._updatedAt||remote.ts||0);
+      const localTs=Number(cur?._updatedAt||cur?.ts||0);
+      const localIsDirty=Object.prototype.hasOwnProperty.call(meta.dirtyTrades,id);
+      if(!cur || !localIsDirty || remoteTs>=localTs){
+        local.set(id,{...remote,id:isNaN(Number(remote.id))?remote.id:Number(remote.id)});
+        if(remoteTs>=Number(meta.dirtyTrades[id]||0))delete meta.dirtyTrades[id];
+      }
+    }
+
+    const remoteSettingsTs=Number(payload.settings?.updated_at||0);
+    const localSettingsTs=Number(meta.settingsUpdatedAt||0);
+    if(payload.settings && (!meta.settingsDirty || remoteSettingsTs>=localSettingsTs)){
+      state.currencies=[...(payload.settings.currencies||[])];
+      state.fx={...DEFAULT.fx,...(payload.settings.fx||{})};
+      meta.settingsUpdatedAt=Math.max(localSettingsTs,remoteSettingsTs);
+      if(remoteSettingsTs>=localSettingsTs)meta.settingsDirty=false;
+    }
+
+    state.trades=[...local.values()];
+    localStorage.setItem(KEY,JSON.stringify(state));
+    meta.lastRevision=Number(payload.revision||meta.lastRevision||0);
+    meta.lastGeneration=Number(payload.generation||meta.lastGeneration||0);
+    meta.lastSyncAt=Date.now();
+    meta.lastError='';
+    syncStoreMetaV180(meta);
+  }finally{
+    syncApplyingV180=false;
+  }
+}
+
+function syncRenderCurrentV1100(){
+  if(currentView==='dashboard')renderDashboard();
+  else if(currentView==='ledger')renderLedger();
+  else if(currentView==='report')renderReport();
+  else if(currentView==='settings')syncUpdateStatusUiV180();
+}
+
 function syncApplyServerStateV180(payload){
   if(!payload)return;
   syncApplyingV180=true;
@@ -178,6 +292,8 @@ function syncApplyServerStateV180(payload){
     meta.lastSyncAt=Date.now();
     meta.lastError='';
     meta.tombstones={};
+    meta.dirtyTrades={};
+    meta.settingsDirty=false;
     if(payload.settings?.updated_at)meta.settingsUpdatedAt=Number(payload.settings.updated_at);
     syncStoreMetaV180(meta);
   }finally{
@@ -289,34 +405,51 @@ async function syncPullReplaceV180(){
   }finally{syncRunningV180=false}
 }
 
+async function syncHandleGenerationMismatchV1100({silent=false}={}){
+  try{
+    const fresh=await syncFetchV180('/api/v1/pull',{method:'GET'});
+    syncApplyServerStateV180(fresh);
+    syncRenderCurrentV1100();
+    if(!silent)alert('مرجع سرور تغییر کرده بود؛ اطلاعات جدید سرور روی این دستگاه دریافت شد.');
+  }catch(pullErr){
+    const meta=syncLoadMetaV180();
+    meta.lastError=String(pullErr?.message||pullErr);
+    syncStoreMetaV180(meta);
+    throw pullErr;
+  }
+}
+
 async function syncNowV180({silent=false}={}){
   const cfg=syncLoadCfgV180();
   if(!cfg.enabled && silent)return;
   if(syncRunningV180||syncApplyingV180)return;
+  if(document.visibilityState!=='visible' && silent)return;
 
   syncRunningV180=true;
   try{
     if(!silent)syncStatusLabelV180('wait','در حال همگام‌سازی دوطرفه...');
-    const data=await syncFetchV180('/api/v1/sync',{method:'POST',body:JSON.stringify(syncSnapshotV180())});
-    syncApplyServerStateV180(data);
-    if(currentView==='dashboard')renderDashboard();
-    else if(currentView==='ledger')renderLedger();
-    else if(currentView==='report')renderReport();
-    else if(currentView==='settings')syncUpdateStatusUiV180();
+    const before=syncLoadMetaV180();
+    const sinceRevision=Number(before.lastRevision||0);
+    let generation=Number(before.lastGeneration||0);
+
+    const delta=syncDeltaSnapshotV1100();
+    const hasPush=(delta.trades?.length||0)>0 || (delta.tombstones?.length||0)>0 || Number(delta.settings?.updated_at||0)>0;
+    if(hasPush){
+      const pushed=await syncFetchV180('/api/v1/push-delta',{method:'POST',body:JSON.stringify(delta)});
+      generation=Number(pushed.generation||generation||0);
+      syncAckDeltaV1100(delta);
+      const meta=syncLoadMetaV180();
+      meta.lastGeneration=generation;
+      syncStoreMetaV180(meta);
+    }
+
+    const changes=await syncFetchV180(`/api/v1/changes?since_revision=${encodeURIComponent(sinceRevision)}&generation=${encodeURIComponent(generation||0)}`,{method:'GET'});
+    syncApplyDeltaV1100(changes);
+    syncRenderCurrentV1100();
+    if(!silent)syncUpdateStatusUiV180();
   }catch(err){
     if(err?.code==='SERVER_GENERATION_CHANGED_PULL_REQUIRED'){
-      try{
-        const fresh=await syncFetchV180('/api/v1/pull',{method:'GET'});
-        syncApplyServerStateV180(fresh);
-        if(currentView==='dashboard')renderDashboard();
-        else if(currentView==='ledger')renderLedger();
-        else if(currentView==='report')renderReport();
-        if(!silent)alert('مرجع سرور تغییر کرده بود؛ اطلاعات جدید سرور روی این دستگاه دریافت شد.');
-      }catch(pullErr){
-        const meta=syncLoadMetaV180();
-        meta.lastError=String(pullErr?.message||pullErr);
-        syncStoreMetaV180(meta);
-      }
+      await syncHandleGenerationMismatchV1100({silent});
     }else{
       const meta=syncLoadMetaV180();
       meta.lastError=String(err?.message||err);
@@ -328,21 +461,38 @@ async function syncNowV180({silent=false}={}){
     }
   }finally{syncRunningV180=false}
 }
+
 function scheduleServerSyncV180(){
   if(syncApplyingV180)return;
   const cfg=syncLoadCfgV180();
   if(!cfg.enabled||!cfg.apiUrl||!cfg.token)return;
   clearTimeout(syncTimerV180);
-  syncTimerV180=setTimeout(()=>syncNowV180({silent:true}),900);
+  syncTimerV180=setTimeout(()=>{
+    if(document.visibilityState==='visible'&&navigator.onLine)syncNowV180({silent:true});
+  },900);
+}
+
+function stopSyncPollingV1100(){
+  if(syncPollV180){clearInterval(syncPollV180);syncPollV180=null}
 }
 function startSyncPollingV180(){
-  if(syncPollV180)clearInterval(syncPollV180);
+  stopSyncPollingV1100();
+  if(document.visibilityState!=='visible')return;
   syncPollV180=setInterval(()=>{
     if(document.visibilityState==='visible'&&navigator.onLine)syncNowV180({silent:true});
-  },15000);
+  },5000);
 }
-window.addEventListener('online',scheduleServerSyncV180);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleServerSyncV180()});
+window.addEventListener('online',()=>{scheduleServerSyncV180();startSyncPollingV180()});
+window.addEventListener('offline',stopSyncPollingV1100);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    startSyncPollingV180();
+    scheduleServerSyncV180();
+  }else{
+    stopSyncPollingV1100();
+    clearTimeout(syncTimerV180);
+  }
+});
 startSyncPollingV180();
 
 function fmt(x,d=3){return new Intl.NumberFormat('fa-IR',{maximumFractionDigits:d}).format(Math.abs(x))}
@@ -2237,7 +2387,7 @@ window.addEventListener('orientationchange',()=>{
 });
 
 
-const PWA_SHELL_VERSION='1.9.0';
+const PWA_SHELL_VERSION='1.10.0';
 
 async function installPwaUpdateManagerV174(){
   if(!('serviceWorker' in navigator))return;
@@ -2297,9 +2447,9 @@ function markStandaloneVersionV174(){
   const standalone =
     window.matchMedia?.('(display-mode: standalone)').matches ||
     window.navigator.standalone===true;
-  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.8.1');
+  const badge=[...document.querySelectorAll('*')].find(el=>el.textContent?.trim()==='v1.10.0');
   if(badge && standalone){
-    badge.title='PWA standalone • shell 1.8.1';
+    badge.title='PWA standalone • shell 1.10.0';
   }
 }
 document.addEventListener('DOMContentLoaded',markStandaloneVersionV174);
@@ -2351,12 +2501,12 @@ function ensurePwaRepairButtonV190(){
 
       // 3) Mark repair attempt in sessionStorage only.
       try{
-        sessionStorage.setItem('khonji_force_repair_v190','1');
+        sessionStorage.setItem('khonji_force_repair_v1100','1');
       }catch(_){}
 
       // 4) Reload a versioned URL with a one-time cache-buster.
       const u=new URL('./index.html', location.href);
-      u.searchParams.set('v','190');
+      u.searchParams.set('v','1100');
       u.searchParams.set('repair',Date.now().toString());
       location.replace(u.toString());
     }catch(err){
