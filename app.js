@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.10.2';
+const BUILD_VERSION='1.11.0';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
