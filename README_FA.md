@@ -398,3 +398,9 @@ v1.8.1 CROSS-ORIGIN API FIX
 - درخواست‌های https://trade-api.khonjigold.com مستقیماً توسط Safari/WebKit به شبکه می‌روند.
 - خطای iOS: FetchEvent.respondWith ... TypeError: Load failed رفع هدف‌گذاری شده است.
 - Sync logic، دیتای localStorage، API URL و Token دست نخورده‌اند.
+
+
+v1.9.0
+- دکمه پاک‌کردن کامل و جایگزینی سرور با 3 مرحله تأیید.
+- Generation Guard برای جلوگیری از برگشت دیتای قدیمی دستگاه‌های دیگر.
+- بعد از Reset، دستگاه‌های قدیمی در Sync بعدی مجبور به Pull مرجع جدید می‌شوند.

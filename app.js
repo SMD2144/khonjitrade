@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.8.1';
+const BUILD_VERSION='1.9.0';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -74,11 +74,11 @@ function syncStoreCfgV180(cfg){localStorage.setItem(SYNC_CFG_KEY_V180,JSON.strin
 function syncLoadMetaV180(){
   try{
     return {
-      tombstones:{},settingsUpdatedAt:0,lastSyncAt:0,lastRevision:0,lastError:'',
+      tombstones:{},settingsUpdatedAt:0,lastSyncAt:0,lastRevision:0,lastGeneration:0,lastError:'',
       ...JSON.parse(localStorage.getItem(SYNC_META_KEY_V180)||'{}')
     };
   }catch(_){
-    return {tombstones:{},settingsUpdatedAt:0,lastSyncAt:0,lastRevision:0,lastError:''};
+    return {tombstones:{},settingsUpdatedAt:0,lastSyncAt:0,lastRevision:0,lastGeneration:0,lastError:''};
   }
 }
 function syncStoreMetaV180(meta){localStorage.setItem(SYNC_META_KEY_V180,JSON.stringify(meta))}
@@ -142,6 +142,7 @@ function syncSnapshotV180(){
   return {
     device_id:syncDeviceIdV180(),
     base_revision:Number(meta.lastRevision||0),
+    base_generation:Number(meta.lastGeneration||0),
     trades:(state.trades||[]).map(t=>({
       ...t,id:String(t.id),_updatedAt:Number(t._updatedAt||t.ts||t.id||Date.now())
     })),
@@ -173,6 +174,7 @@ function syncApplyServerStateV180(payload){
 
     const meta=syncLoadMetaV180();
     meta.lastRevision=Number(payload.revision||0);
+    meta.lastGeneration=Number(payload.generation||meta.lastGeneration||0);
     meta.lastSyncAt=Date.now();
     meta.lastError='';
     meta.tombstones={};
@@ -195,7 +197,7 @@ function syncUpdateStatusUiV180(){
   if(meta.lastError)return syncStatusLabelV180('error','خطا: '+meta.lastError);
   if(meta.lastSyncAt){
     const t=new Date(meta.lastSyncAt).toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
-    return syncStatusLabelV180('ok',`متصل • آخرین همگام‌سازی ${t} • نسخه سرور ${meta.lastRevision||0}`);
+    return syncStatusLabelV180('ok',`متصل • آخرین همگام‌سازی ${t} • نسخه ${meta.lastRevision||0} • نسل ${meta.lastGeneration||0}`);
   }
   syncStatusLabelV180('wait','اتصال ذخیره شده؛ هنوز همگام‌سازی انجام نشده.');
 }
@@ -222,6 +224,54 @@ async function syncBootstrapV180(){
     syncApplyServerStateV180(data);
     syncStatusLabelV180('ok',`راه‌اندازی انجام شد • ${data.trades?.length||0} رکورد`);
   }finally{syncRunningV180=false}
+}
+
+
+async function syncReplaceAllV190(){
+  if(syncRunningV180)return;
+
+  const count=(state.trades||[]).length;
+  const ok1=confirm(
+    'هشدار بسیار مهم\\n\\n'+
+    'این کار تمام معاملات و تنظیمات موجود روی سرور را پاک می‌کند و فقط اطلاعات فعلی همین دستگاه را جایگزین می‌کند.\\n\\n'+
+    `تعداد رکوردهای فعلی این دستگاه: ${count}\\n\\nادامه می‌دهی؟`
+  );
+  if(!ok1)return;
+
+  const ok2=confirm(
+    'تأیید دوم\\n\\n'+
+    'بعد از انجام این کار، دیتای قبلی سرور دیگر مرجع نیست. دستگاه‌های دیگر مجبور می‌شوند نسخه جدید سرور را دریافت کنند.\\n\\n'+
+    'آیا مطمئنی؟'
+  );
+  if(!ok2)return;
+
+  const typed=prompt(
+    'تأیید نهایی\\n\\nبرای پاک‌کردن کامل سرور، دقیقاً عبارت زیر را وارد کن:\\n\\nحذف کامل سرور'
+  );
+  if(typed!=='حذف کامل سرور'){
+    alert('عبارت تأیید درست وارد نشد. عملیات لغو شد.');
+    return;
+  }
+
+  syncRunningV180=true;
+  try{
+    syncStatusLabelV180('wait','در حال پاک‌کردن و جایگزینی کامل سرور...');
+    const data=await syncFetchV180('/api/v1/replace-all',{
+      method:'POST',
+      body:JSON.stringify({
+        confirm:'DELETE_AND_REPLACE_ALL_SERVER_DATA',
+        snapshot:syncSnapshotV180()
+      })
+    });
+    syncApplyServerStateV180(data);
+    syncStatusLabelV180('ok',`سرور کامل جایگزین شد • ${data.trades?.length||0} رکورد • نسل ${data.generation||0}`);
+    alert('سرور با اطلاعات همین دستگاه جایگزین شد.');
+  }catch(err){
+    syncStatusLabelV180('error','خطا: '+String(err?.message||err));
+    alert('جایگزینی کامل سرور انجام نشد:\\n'+String(err?.message||err));
+  }finally{
+    syncRunningV180=false;
+  }
 }
 
 async function syncPullReplaceV180(){
@@ -254,12 +304,27 @@ async function syncNowV180({silent=false}={}){
     else if(currentView==='report')renderReport();
     else if(currentView==='settings')syncUpdateStatusUiV180();
   }catch(err){
-    const meta=syncLoadMetaV180();
-    meta.lastError=String(err?.message||err);
-    syncStoreMetaV180(meta);
-    if(!silent){
-      syncStatusLabelV180('error','خطا: '+meta.lastError);
-      alert('همگام‌سازی انجام نشد:\n'+meta.lastError);
+    if(err?.code==='SERVER_GENERATION_CHANGED_PULL_REQUIRED'){
+      try{
+        const fresh=await syncFetchV180('/api/v1/pull',{method:'GET'});
+        syncApplyServerStateV180(fresh);
+        if(currentView==='dashboard')renderDashboard();
+        else if(currentView==='ledger')renderLedger();
+        else if(currentView==='report')renderReport();
+        if(!silent)alert('مرجع سرور تغییر کرده بود؛ اطلاعات جدید سرور روی این دستگاه دریافت شد.');
+      }catch(pullErr){
+        const meta=syncLoadMetaV180();
+        meta.lastError=String(pullErr?.message||pullErr);
+        syncStoreMetaV180(meta);
+      }
+    }else{
+      const meta=syncLoadMetaV180();
+      meta.lastError=String(err?.message||err);
+      syncStoreMetaV180(meta);
+      if(!silent){
+        syncStatusLabelV180('error','خطا: '+meta.lastError);
+        alert('همگام‌سازی انجام نشد:\n'+meta.lastError);
+      }
     }
   }finally{syncRunningV180=false}
 }
@@ -2068,7 +2133,23 @@ function renderSettings(){
       alert(String(err?.message||err));
     }
   };
-  syncPullV180.onclick=async()=>{
+  
+  syncReplaceAllV190.onclick=async()=>{
+    try{
+      const cfg=syncLoadCfgV180();
+      cfg.apiUrl=syncNormalizeApiV180(syncApiUrlV180.value);
+      cfg.token=syncTokenV180.value.trim();
+      cfg.enabled=true;
+      syncEnabledV180.checked=true;
+      syncStoreCfgV180(cfg);
+      await syncReplaceAllV190();
+    }catch(err){
+      syncStatusLabelV180('error','خطا: '+String(err?.message||err));
+      alert(String(err?.message||err));
+    }
+  };
+
+syncPullV180.onclick=async()=>{
     try{
       storeSyncFieldsV180(true);syncEnabledV180.checked=true;
       await syncPullReplaceV180();
@@ -2156,13 +2237,13 @@ window.addEventListener('orientationchange',()=>{
 });
 
 
-const PWA_SHELL_VERSION='1.8.1';
+const PWA_SHELL_VERSION='1.9.0';
 
 async function installPwaUpdateManagerV174(){
   if(!('serviceWorker' in navigator))return;
 
   try{
-    const reg=await navigator.serviceWorker.register('./sw.js?v=181',{
+    const reg=await navigator.serviceWorker.register('./sw.js?v=190',{
       scope:'./',
       updateViaCache:'none'
     });
@@ -2193,7 +2274,7 @@ async function installPwaUpdateManagerV174(){
         if(target && target!==seen){
           sessionStorage.setItem('khonji_sw_seen',target);
           // One controlled reload only, avoiding loops.
-          location.replace('./index.html?v=181');
+          location.replace('./index.html?v=190');
         }
       }
     });
@@ -2202,7 +2283,7 @@ async function installPwaUpdateManagerV174(){
     navigator.serviceWorker.addEventListener('controllerchange',()=>{
       if(reloading)return;
       reloading=true;
-      setTimeout(()=>location.replace('./index.html?v=181'),50);
+      setTimeout(()=>location.replace('./index.html?v=190'),50);
     });
 
   }catch(err){
@@ -2225,13 +2306,13 @@ document.addEventListener('DOMContentLoaded',markStandaloneVersionV174);
 
 
 
-function ensurePwaRepairButtonV181(){
-  if(document.getElementById('pwaRepairBtnV181'))return;
+function ensurePwaRepairButtonV190(){
+  if(document.getElementById('pwaRepairBtnV190'))return;
 
   const btn=document.createElement('button');
   btn.type='button';
-  btn.id='pwaRepairBtnV181';
-  btn.className='pwaRepairBtnV181';
+  btn.id='pwaRepairBtnV190';
+  btn.className='pwaRepairBtnV190';
   btn.textContent='به‌روزرسانی اجباری';
   btn.title='پاک‌کردن کش برنامه و دریافت نسخه جدید بدون حذف معاملات';
 
@@ -2270,12 +2351,12 @@ function ensurePwaRepairButtonV181(){
 
       // 3) Mark repair attempt in sessionStorage only.
       try{
-        sessionStorage.setItem('khonji_force_repair_v181','1');
+        sessionStorage.setItem('khonji_force_repair_v190','1');
       }catch(_){}
 
       // 4) Reload a versioned URL with a one-time cache-buster.
       const u=new URL('./index.html', location.href);
-      u.searchParams.set('v','181');
+      u.searchParams.set('v','190');
       u.searchParams.set('repair',Date.now().toString());
       location.replace(u.toString());
     }catch(err){
@@ -2289,5 +2370,5 @@ function ensurePwaRepairButtonV181(){
   document.body.appendChild(btn);
 }
 
-document.addEventListener('DOMContentLoaded',ensurePwaRepairButtonV181);
-setTimeout(ensurePwaRepairButtonV181,500);
+document.addEventListener('DOMContentLoaded',ensurePwaRepairButtonV190);
+setTimeout(ensurePwaRepairButtonV190,500);

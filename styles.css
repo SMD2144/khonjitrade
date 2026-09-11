@@ -2131,3 +2131,11 @@ input[data-custom-keypad="1"][data-editing-blank="1"]{
 .syncToggleV180{margin-top:13px;display:flex;align-items:center;gap:9px;font-weight:900}.syncToggleV180 input{width:20px;height:20px}
 .syncWarningV180{margin:12px 0 0;color:var(--gold);font-size:12px;line-height:1.8}
 @media(max-width:699px){.syncFieldsV180{grid-template-columns:1fr}}
+
+
+.syncDangerV190{
+  background:rgba(190,45,45,.18)!important;
+  color:var(--red)!important;
+  border:1px solid rgba(220,70,70,.45)!important;
+  font-weight:950!important;
+}
