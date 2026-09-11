@@ -1,10 +1,10 @@
 const CACHE='khonji-pwa-v1.11.0-delete-sync-fix';
 const CORE=[
   './',
-  './index.html?v=1110',
-  './styles.css?v=1110',
-  './app.js?v=1110',
-  './manifest.json?v=1110',
+  './index.html?v=1112',
+  './styles.css?v=1112',
+  './app.js?v=1112',
+  './manifest.json?v=1112',
   './icon-192.svg',
   './icon-512.svg'
 ];
@@ -49,10 +49,10 @@ self.addEventListener('fetch', event => {
       try{
         const fresh=await fetch(req,{cache:'no-store'});
         const cache=await caches.open(CACHE);
-        cache.put('./index.html?v=1110', fresh.clone()).catch(()=>{});
+        cache.put('./index.html?v=1112', fresh.clone()).catch(()=>{});
         return fresh;
       }catch(_){
-        return (await caches.match('./index.html?v=1110')) || (await caches.match('./'));
+        return (await caches.match('./index.html?v=1112')) || (await caches.match('./'));
       }
     })());
     return;

@@ -1,5 +1,5 @@
 const KEY='khonji_pwa_v1';
-const BUILD_VERSION='1.11.1';
+const BUILD_VERSION='1.11.2';
 const BUILD='1.1.2';
 const DEFAULT={
   trades:[],
@@ -1518,8 +1518,37 @@ function renderTotalGoldCoinAdvice(){
 
 function installMainAdviceGuardV173(){}
 
+function dashboardSyncBarHtmlV1112(){
+  const meta=syncLoadMetaV180();
+  const user=authUserV1110();
+  const who=user?(user.role==='admin'?'مدیر':(user.display_name||user.username||'کاربر')):'وارد نشده';
+  let cls='wait',status='در حال بررسی',time='—';
+  if(meta.lastError){cls='error';status='قطع';}
+  else if(meta.lastSyncAt){cls='ok';status='متصل';time=new Date(meta.lastSyncAt).toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+  else {const cfg=syncLoadCfgV180(); if(!cfg.enabled){cls='off';status='غیرفعال';}}
+  return `<section class="dashSyncBarV1112 ${cls}">
+    <div class="dashSyncIdentityV1112">${who}</div>
+    <div class="dashSyncStateV1112"><span class="dashSyncDotV1112"></span><span>${status}</span><span class="dashSyncTimeV1112">${time}</span></div>
+    <button type="button" id="dashSyncRefreshV1112" class="dashSyncRefreshV1112" aria-label="بروزرسانی">↻ <span>بروزرسانی</span></button>
+  </section>`;
+}
+function mountDashboardSyncBarV1112(){
+  const root=document.querySelector('.dashboardV164'); if(!root)return;
+  const old=document.getElementById('dashSyncBarHostV1112'); if(old)old.remove();
+  const host=document.createElement('div');host.id='dashSyncBarHostV1112';host.innerHTML=dashboardSyncBarHtmlV1112();
+  root.prepend(host);
+  const btn=document.getElementById('dashSyncRefreshV1112');
+  if(btn)btn.onclick=async()=>{
+    btn.disabled=true;btn.classList.add('busy');
+    try{await syncNowV180({silent:true});}
+    catch(e){const m=syncLoadMetaV180();m.lastError=String(e?.message||e);syncStoreMetaV180(m);}
+    finally{btn.disabled=false;btn.classList.remove('busy');mountDashboardSyncBarV1112();}
+  };
+}
+
 function renderDashboard(){
   setView(cloneTpl('dashboardTpl'));
+  mountDashboardSyncBarV1112();
   const today=state.trades.filter(isToday);
   const buy=today.filter(t=>t.side==='BUY').reduce((a,t)=>a+eq18(t),0);
   const sell=today.filter(t=>t.side==='SELL').reduce((a,t)=>a+eq18(t),0);

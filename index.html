@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="دفتر طلا"/>
-  <link rel="manifest" href="manifest.json?v=1110"/>
+  <link rel="manifest" href="manifest.json?v=1112"/>
   <link rel="apple-touch-icon" href="icon-192.svg"/>
   <link rel="stylesheet" href="styles.css?v=1111"/>
   <title>دفتر معاملات طلا</title>
@@ -147,6 +147,22 @@
 .dashboardBottomV171{margin-bottom:20px !important}
 </style>
 
+
+<style id="dashSyncBarV1112Style">
+#dashSyncBarHostV1112{margin:0 0 10px 0}
+.dashSyncBarV1112{display:grid;grid-template-columns:minmax(80px,1fr) auto auto;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:14px;background:var(--panel);min-height:44px;direction:rtl}
+.dashSyncIdentityV1112{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.dashSyncStateV1112{display:flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap;color:var(--muted)}
+.dashSyncDotV1112{width:9px;height:9px;border-radius:50%;background:#e0a933;box-shadow:0 0 0 3px rgba(224,169,51,.12)}
+.dashSyncBarV1112.ok .dashSyncDotV1112{background:#28d17c;box-shadow:0 0 0 3px rgba(40,209,124,.12)}
+.dashSyncBarV1112.error .dashSyncDotV1112{background:#ff5b61;box-shadow:0 0 0 3px rgba(255,91,97,.12)}
+.dashSyncBarV1112.off .dashSyncDotV1112{background:#777}
+.dashSyncTimeV1112{font-variant-numeric:tabular-nums}
+.dashSyncRefreshV1112{padding:7px 11px;border-radius:10px;font-size:12px;min-height:34px;white-space:nowrap}
+.dashSyncRefreshV1112.busy{opacity:.65;pointer-events:none}
+@media(max-width:620px){.dashSyncBarV1112{grid-template-columns:1fr auto}.dashSyncStateV1112{grid-row:2;grid-column:1/-1;justify-content:flex-start}.dashSyncRefreshV1112 span{display:none}}
+</style>
+
 </head>
 <body>
 <div id="app">
@@ -156,7 +172,7 @@
       <p>ثبت سریع، دفتر روزانه و بالانس</p>
     </div>
     <button id="themeBtn" class="iconBtn">◐</button>
-  <div id="appVersionBadge" class="versionBadge">v1.11.0</div></header>
+  <div id="appVersionBadge" class="versionBadge">v1.11.2</div></header>
 
   <main id="view"></main>
 
